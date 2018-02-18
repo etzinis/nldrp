@@ -102,3 +102,7 @@ ENV/
 
 # Pycharm
 .idea/
+
+# Dataset and results folders
+dataset
+work
