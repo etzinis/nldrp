@@ -1,13 +1,23 @@
-import os
+import argparse
 import numpy as np
+import os
 import scipy.io.wavfile
+import sys 
+
+nldpr_dir = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                '../../')
+sys.path.insert(0, nldpr_dir)
 
 from nldrp.config import BASE_PATH
 
 
 class SaveeDataloader(object):
-    def __init__(self):
-        self.data_dir = os.path.join(BASE_PATH, 'dataset')
+    def __init__(self, savee_path=None):
+        if savee_path is not None:
+            self.data_dir = savee_path
+        else:
+            self.data_dir = os.path.join(BASE_PATH, 'dataset')
         self.speaker_ids = ['DC', 'JE', 'JK', 'KL']
         self.emotion_ids = ['a', 'd', 'f', 'h', 'n', 'sa', 'su']
         self.emotion_dict = {
@@ -64,3 +74,22 @@ class SaveeDataloader(object):
                        for num in range(16, 31)])
         uttids.sort()
         return uttids
+
+
+def get_args():
+    """! Command line parser """
+    parser = argparse.ArgumentParser(
+        description='SAVEE Dataset parser' )
+    parser.add_argument("-i", "--savee_path", type=str, 
+        help="""The path where SAVEE dataset is stored""", 
+        default=None)
+    args = parser.parse_args()
+    return args 
+
+if __name__ == "__main__":
+    """!
+    \brief Example of usage"""
+    args = get_args()
+    savee_data_obj = SaveeDataloader(savee_path=args.savee_path)
+    from pprint import pprint 
+    pprint(savee_data_obj.data_dict['KL_a05'])
