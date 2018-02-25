@@ -1,0 +1,97 @@
+import numpy as np
+
+def rps(signal, tau, ed):
+    """!
+    \brief Given a signal this method reconstructs its phase space
+    according to the given parameters (tau--time delay and 
+    ed-- embedding dimension)"""
+    phase_space_list = []
+    s_len = signal.shape[0]
+
+    for i in np.arange(ed):
+        ed_vec = signal[i*tau:s_len-(ed-i)*tau]
+        phase_space_list.append(ed_vec)
+
+    rps_signal = np.array(phase_space_list)
+
+    return rps_signal
+
+def dummy_RPS(signal,tau,ed):
+    
+    rolled_signal = np.roll(signal,-tau)
+
+    phase_space_signal = np.vstack((signal[:-tau],
+                                    rolled_signal[:-tau]))
+    phase_space_signal = np.transpose(phase_space_signal)
+
+    for dim in range(3,ed+1):
+        rolled_signal = np.roll(phase_space_signal[:,-1],
+                                -tau)
+        rolled_signal= rolled_signal.reshape(-1,1)
+        phase_space_signal = np.hstack((
+                             phase_space_signal[:-tau],
+                             rolled_signal[:-tau]))
+
+    return phase_space_signal
+
+def test_performance(iterations=1000):
+
+    import time
+    
+    f0_list = np.random.uniform(low=40.0, high=700.0, 
+                                size=(iterations,))
+    f0_list = np.sort(f0_list)
+    fs_list = [8000, 16000, 44100]
+    win_secs = 0.025
+
+    tau = 1 
+    ed = 3
+
+    print '='*5 + ' RPS Performance Testing ' + '='*5
+    
+    for fs in fs_list:
+        total_time = {'Numpy Roll':0.0, 'Python Roll':0.0}
+        win_samples = int(win_secs * fs) 
+        print '\n\n'+'~'*5 + ' Testing for Fs={} Samples={} '.format(
+                    fs, win_samples)+'~'*5
+        
+        for f0 in f0_list:
+            x = np.cos((2.*np.pi * f0 / fs) * np.arange(win_samples))
+
+            before = time.time()
+            est_rps = dummy_RPS(x, tau, ed)
+            now = time.time()
+            total_time['Numpy Roll'] += now-before
+
+            before = time.time()
+            est_rps = rps(x, tau, ed)
+            now = time.time()
+            total_time['Python Roll'] += now-before
+
+            # check the validity of the results 
+            
+
+        for k,v in total_time.items():
+            print (">Total Time: {} for {} frames, Method: "
+                    "{}".format( v, iterations, k))
+
+def test_rps():
+    """!
+    \brief Example of usage"""
+    dummy_length = 10
+    signal = np.array(np.arange(dummy_length))
+
+    l_tau = np.arange(5)
+    l_ed = np.arange(5)
+
+    print signal
+
+    for ed in l_ed:
+        for tau in l_tau:
+            print "Ed: {} Tau: {}".format(ed,tau)
+            rps_res = rps(signal, tau, ed)
+            print rps_res 
+
+if __name__ == "__main__":
+   
+    test_performance()
