@@ -4,7 +4,14 @@ def rps(signal, tau, ed):
     """!
     \brief Given a signal this method reconstructs its phase space
     according to the given parameters (tau--time delay and 
-    ed-- embedding dimension)"""
+    ed-- embedding dimension)
+
+    \warning the resulting 2D array will have less samples than the 
+    given signal in 1D. 
+
+    \returns rps_signal (2D numpy vector) -- phase space representation
+    shape = (points in phase space - (ed -1)*tau, 
+    embedded dimensions (ed))"""
     phase_space_list = []
     s_len = signal.shape[0]
 
@@ -97,3 +104,4 @@ def test_rps():
 
 if __name__ == "__main__":
     test_performance(iterations=1000)
+    # test_rps()
