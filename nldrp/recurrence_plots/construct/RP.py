@@ -6,3 +6,9 @@
 """
 
 import numpy as np
+
+class RP(object):
+    """Computation of various RPs"""
+    def __init__(self, arg):
+        self.arg = arg
+        
