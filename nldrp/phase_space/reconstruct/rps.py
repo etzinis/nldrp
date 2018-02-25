@@ -9,12 +9,12 @@ def rps(signal, tau, ed):
     s_len = signal.shape[0]
 
     for i in np.arange(ed):
-        ed_vec = signal[i*tau:s_len-(ed-i)*tau]
+        ed_vec = signal[i*tau:s_len-(ed-i-1)*tau]
         phase_space_list.append(ed_vec)
 
     rps_signal = np.array(phase_space_list)
 
-    return rps_signal
+    return np.transpose(rps_signal)
 
 def dummy_RPS(signal,tau,ed):
     
@@ -59,17 +59,20 @@ def test_performance(iterations=1000):
             x = np.cos((2.*np.pi * f0 / fs) * np.arange(win_samples))
 
             before = time.time()
-            est_rps = dummy_RPS(x, tau, ed)
+            est_rps_n = dummy_RPS(x, tau, ed)
             now = time.time()
             total_time['Numpy Roll'] += now-before
 
             before = time.time()
-            est_rps = rps(x, tau, ed)
+            est_rps_p = rps(x, tau, ed)
             now = time.time()
             total_time['Python Roll'] += now-before
 
             # check the validity of the results 
-            
+            assert (est_rps_n == est_rps_p).all(), (
+                'All implementations '
+                'of RPS should have the same result')
+
 
         for k,v in total_time.items():
             print (">Total Time: {} for {} frames, Method: "
@@ -93,5 +96,4 @@ def test_rps():
             print rps_res 
 
 if __name__ == "__main__":
-   
-    test_performance()
+    test_performance(iterations=1000)
