@@ -23,7 +23,7 @@ class RP(object):
     @staticmethod
     def factory(RP_name, 
                 maximum_distance=None,
-                thresh=0.15):
+                thresh=0.2):
         """!
         \brief This constructor checks whether all the parameters 
         have been set appropriatelly and finally set them by also 
@@ -34,7 +34,7 @@ class RP(object):
         if RP_name == 'continuous':
             return ContinuousRP(maximum_distance)
         elif RP_name == 'binary':
-            return BinaryRP(thresh)
+            return BinaryRP(thresh, maximum_distance)
         else:
             valid_RP_names = ['binary', 'continuous']
             raise NotImplementedError(('Recurrence Plot Name: <{}> '
@@ -76,15 +76,40 @@ class ContinuousRP(RP):
 
 class BinaryRP(object):
     """docstring for BinaryRP"""
-    def __init__(self, thresh):
+    def __init__(self, thresh, maximum):
         if thresh > 0.0 and thresh < 1.0:
             self.thresh = thresh
         else:
             raise ValueError('Threshold <{}> not set into (0,1)'
                 ''.format(thresh))
+        self.maximum = maximum 
 
-    def extract(self):
-        pass
+    def extract(self, 
+                X,
+                norm='euclidean',
+                n_jobs = 1):
+        """!
+        \brief compute the normalized RP for the X representation
+
+        \param X (\a numpy matrix) with size (n_samples, n_features)
+
+        \returns rp (\a numpy matrix) representing the RP of the 
+        representation in continuous form with size:
+        (n_samples, n_samples)"""
+
+        d = dutil.compute_distance_matrix(X, 
+                                          norm=norm,
+                                          n_jobs = n_jobs
+                                          )
+
+        if self.maximum is None:
+            this_maxima = np.amax(d)
+        else:
+            this_maxima = self.maximum 
+            
+        cont = np.ones(d.shape) - np.divide(d, this_maxima)
+
+        return cont > self.thresh
 
 def test_performance(iterations=1000):
 
@@ -100,12 +125,13 @@ def test_performance(iterations=1000):
     tau = 1 
     ed = 3
 
-    rp_constr = RP.factory('continuous')
+    cont_constr = RP.factory('continuous')
+    bin_constr = RP.factory('binary')
 
     print '='*5 + ' Recur. Plots Performance Testing ' + '='*5
     
     for fs in fs_list:
-        total_time = {'Continuous RP':0.0}
+        total_time = {'Continuous RP':0.0, 'Binary RP':0.0}
         win_samples = int(win_secs * fs) 
         print '\n\n'+'~'*5 + ' Testing for Fs={} Samples={} '.format(
                     fs, win_samples)+'~'*5
@@ -116,11 +142,23 @@ def test_performance(iterations=1000):
             phase_s = rps.rps(x, tau, ed)
 
             before = time.time()
-            r_plot = rp_constr.extract(phase_s, 
+            cont_r_plot = cont_constr.extract(phase_s, 
                                       norm='euclidean',
                                       n_jobs = 1)
             now = time.time()
             total_time['Continuous RP'] += now-before
+
+            before = time.time()
+            bin_r_plot = bin_constr.extract(phase_s, 
+                                      norm='euclidean',
+                                      n_jobs = 1)
+            now = time.time()
+            total_time['Binary RP'] += now-before
+
+            # import matplotlib.pyplot as plt
+            # plt.imshow(cont_r_plot)
+            # # plt.imshow(bin_r_plot)
+            # plt.show()
 
         for k,v in total_time.items():
             print (">Total Time: {} for {} frames, RP Class: "
@@ -128,4 +166,4 @@ def test_performance(iterations=1000):
 
 if __name__ == "__main__":
     
-    test_performance(iterations=1)
+    test_performance(iterations=100)
