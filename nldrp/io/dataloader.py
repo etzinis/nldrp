@@ -2,14 +2,16 @@ import argparse
 import numpy as np
 import os
 import scipy.io.wavfile
-import sys 
+import sys
 
-nldpr_dir = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                '../../')
-sys.path.insert(0, nldpr_dir)
+from sklearn.preprocessing import MaxAbsScaler
 
 from nldrp.config import BASE_PATH
+
+nldpr_dir = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    '../../')
+sys.path.insert(0, nldpr_dir)
 
 
 class SaveeDataloader(object):
@@ -33,35 +35,42 @@ class SaveeDataloader(object):
         self.data_dict = self.make_data_dict()
 
     def make_data_dict(self):
-        data_dict = {}
+        data_dict = {spk: {} for spk in self.speaker_ids}
         for uttid in self.uttids:
             speaker = uttid.split('_')[0]
             alnum = uttid.split('_')[1]
+            # Fs, wav, wav_duration and normalize wav to [-1,1]
             wavpath = os.path.join(self.data_dir, 'AudioData',
                                    speaker, alnum + '.wav')
-            fs, wav = scipy.io.wavfile.read(wavpath)
+            fs, wav_raw = scipy.io.wavfile.read(wavpath)
+            wav_dur = wav_raw.shape[0] / fs
+            scaler = MaxAbsScaler()
+            wav_raw = wav_raw.reshape(-1, 1)
+            scaler.fit(wav_raw)
+            wav = np.squeeze(scaler.transform(wav_raw))
+            # F0 track
             f0path = os.path.join(self.data_dir, 'Annotation',
                                   speaker, 'FrequencyTrack',
                                   alnum.replace('0', '') + '.txt')
+            # Phones
             phonepath = os.path.join(self.data_dir, 'Annotation',
                                      speaker, 'PhoneticLabel',
                                      alnum.replace('0', '') + '.txt')
-            with open(phonepath) as f:
-                lines = f.readlines()
-            phone_annotation = [line.strip() for line in lines]
+            phone_specific = self.get_phone_specific(phonepath, wav, fs, wav_dur)
+            # Dictionary construction
             info = {
                 'speaker': speaker,
                 'wavpath': wavpath,
-                'emotion': alnum[0:-2],
+                'emotion': self.emotion_dict[alnum[0:-2]],
                 'Fs': fs,
                 'wav': wav,
+                'wav_duration': wav_dur,
                 'F0': np.loadtxt(f0path, dtype='float64'),
-                'phone_time': np.array([float(line.split(' ')[0])
-                                        for line in phone_annotation]),
-                'phone_annotation': [line.split(' ')[1]
-                                     for line in phone_annotation]
+                'phone_start_times': np.array(phone_specific['phone_start_times']),
+                'phone_labels': phone_specific['phone_labels'],
+                'phone_details': phone_specific['phone_details']
             }
-            data_dict[uttid] = info
+            data_dict[speaker][alnum] = info
         return data_dict
 
     def make_uttids(self):
@@ -75,21 +84,56 @@ class SaveeDataloader(object):
         uttids.sort()
         return uttids
 
+    @staticmethod
+    def get_phone_specific(phonepath, wav, fs, wav_dur):
+        # Read phone order
+        with open(phonepath) as f:
+            lines = f.readlines()
+        phone_annotation = [line.strip() for line in lines]
+        phone_labels = [line.split(' ')[1] for line in phone_annotation]
+        # Read phone starting times
+        phone_start_times = [float(line.split(' ')[0]) for line in phone_annotation]
+        # Make phone list of dictionaries
+        times = phone_start_times.copy()
+        times.append(wav_dur)
+        phone_details = []
+        for i, phone in enumerate(phone_labels):
+            start = times[i]
+            end = times[i + 1]
+            start_sample = round(start * fs)
+            end_sample = round(end * fs)
+            phone_details.append({
+                'phone_label': phone,
+                'start': start,
+                'start_sample': start_sample,
+                'end': end,
+                'end_sample': end_sample,
+                'nparray': np.array(wav[start_sample:end_sample])
+            })
+        phone_specific = {
+            'phone_labels': phone_labels,
+            'phone_start_times': phone_start_times,
+            'phone_details': phone_details
+        }
+        return phone_specific
+
 
 def get_args():
     """! Command line parser """
     parser = argparse.ArgumentParser(
-        description='SAVEE Dataset parser' )
-    parser.add_argument("-i", "--savee_path", type=str, 
-        help="""The path where SAVEE dataset is stored""", 
-        default=None)
-    args = parser.parse_args()
-    return args 
+        description='SAVEE Dataset parser')
+    parser.add_argument("-i", "--savee_path", type=str,
+                        help="""The path where SAVEE dataset is stored""",
+                        default=None)
+    _args = parser.parse_args()
+    return _args
+
 
 if __name__ == "__main__":
-    """!
-    \brief Example of usage"""
+    """!brief Example of usage"""
     args = get_args()
     savee_data_obj = SaveeDataloader(savee_path=args.savee_path)
-    from pprint import pprint 
-    pprint(savee_data_obj.data_dict['KL_a05'])
+    from pprint import pprint
+
+    pprint(savee_data_obj.data_dict['KL']['a05'])
+    pprint(savee_data_obj.data_dict['DC']['a01']['phone_details'][0])
