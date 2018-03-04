@@ -3,13 +3,13 @@ import numpy as np
 import os
 import sys
 
-from nldrp.config import BASE_PATH
-from nldrp.io.AudioReader import AudioFile
-
 nldpr_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     '../../')
 sys.path.insert(0, nldpr_dir)
+
+from nldrp.config import BASE_PATH
+from nldrp.io.AudioReader import AudioFile
 
 
 class SaveeDataloader(object):
@@ -120,7 +120,7 @@ def get_args():
         description='SAVEE Dataset parser')
     parser.add_argument("-i", "--savee_path", type=str,
                         help="""The path where SAVEE dataset is stored""",
-                        default=None)
+                        required=True)
     _args = parser.parse_args()
     return _args
 
@@ -131,5 +131,5 @@ if __name__ == "__main__":
     savee_data_obj = SaveeDataloader(savee_path=args.savee_path)
     from pprint import pprint
 
-    # pprint(savee_data_obj.data_dict['KL']['a05'])
-    pprint(savee_data_obj.data_dict['DC']['a01']['phone_details'][0])
+    pprint(savee_data_obj.data_dict['KL']['a05'])
+    # pprint(savee_data_obj.data_dict['DC']['a01']['phone_details'][0])
