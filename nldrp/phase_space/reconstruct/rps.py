@@ -48,7 +48,18 @@ def dummy_RPS(signal,tau,ed):
 
     return phase_space_signal
 
+
 def test_performance(iterations=1000):
+    import os
+    import sys
+    nldrp_dir = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        '../../')
+    sys.path.insert(0, nldrp_dir)
+    import config
+    sys.path.insert(0, config.PYUNICORN_PATH)
+
+    import pyunicorn.timeseries.surrogates as unic
 
     import time
     
@@ -64,7 +75,9 @@ def test_performance(iterations=1000):
     print '='*5 + ' RPS Performance Testing ' + '='*5
     
     for fs in fs_list:
-        total_time = {'Numpy Roll':0.0, 'Python Roll':0.0}
+        total_time = {'Numpy Roll':0.0,
+                      'Python Roll':0.0,
+                      'Unicorn':0.0}
         win_samples = int(win_secs * fs) 
         print '\n\n'+'~'*5 + ' Testing for Fs={} Samples={} '.format(
                     fs, win_samples)+'~'*5
@@ -81,11 +94,22 @@ def test_performance(iterations=1000):
             est_rps_p = rps(x, tau, ed)
             now = time.time()
             total_time['Python Roll'] += now-before
+            before = time.time()
+            uni_rps = unic.Surrogates.embed_time_series_array(
+                    np.reshape(x, (1, -1)), ed, tau)[0]
+            now = time.time()
+            total_time['Unicorn'] += now - before
 
             # check the validity of the results 
             assert (est_rps_n == est_rps_p).all(), (
                 'All implementations '
                 'of RPS should have the same result')
+
+            # check the validity of the results
+            assert (est_rps_n == uni_rps).all(), (
+                'All implementations '
+                'of RPS should have the same result')
+
 
 
         for k,v in total_time.items():
