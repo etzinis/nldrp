@@ -5,6 +5,9 @@ of audio formats and returning a vector and other information that can
 be used from other modules in any pipeline.
 
 @author Efthymios Tzinis {etzinis@gmail.com}
+@copyright The author
+also works for Behavioral Signals which is the only company having
+full rights upon both commercial and non-commercial use of this code.
 """
 
 import argparse
