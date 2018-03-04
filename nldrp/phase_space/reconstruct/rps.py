@@ -6,6 +6,16 @@
 """
 
 import numpy as np
+import os
+import sys
+nldrp_dir = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    '../../')
+sys.path.insert(0, nldrp_dir)
+import config
+sys.path.insert(0, config.PYUNICORN_PATH)
+
+import pyunicorn.timeseries.recurrence_plot as unicorn_rp
 
 def rps(signal, tau, ed):
     """!
@@ -49,17 +59,16 @@ def dummy_RPS(signal,tau,ed):
     return phase_space_signal
 
 
-def test_performance(iterations=1000):
-    import os
-    import sys
-    nldrp_dir = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        '../../')
-    sys.path.insert(0, nldrp_dir)
-    import config
-    sys.path.insert(0, config.PYUNICORN_PATH)
+def unicorn_RPS(signal, tau, ed):
+    """!
+    \brief Wrapper of Unicorn Embed Time series static method --
+    Cython efficient implementation"""
 
-    import pyunicorn.timeseries.surrogates as unic
+    return unicorn_rp.RecurrencePlot.embed_time_series(signal,
+                                                       ed, tau)
+
+
+def test_performance(iterations=1000):
 
     import time
     
@@ -94,22 +103,19 @@ def test_performance(iterations=1000):
             est_rps_p = rps(x, tau, ed)
             now = time.time()
             total_time['Python Roll'] += now-before
+
             before = time.time()
-            try:
-                uni_rps = unic.Surrogates.embed_time_series_array(
-                        np.reshape(x, (1, -1)), ed, tau)[0]
-            except:
-                continue
+            uni_rps = unicorn_RPS(x, tau, ed)
             now = time.time()
             total_time['Unicorn'] += now - before
 
             # check the validity of the results 
-            assert (est_rps_n == est_rps_p).all(), (
+            assert (abs(est_rps_n-est_rps_p)< 0.00001).all(), (
                 'All implementations '
                 'of RPS should have the same result')
 
             # check the validity of the results
-            assert (est_rps_n == uni_rps).all(), (
+            assert (abs(est_rps_n-uni_rps)< 0.00001).all(), (
                 'All implementations '
                 'of RPS should have the same result')
 
