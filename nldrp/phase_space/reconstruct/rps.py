@@ -95,8 +95,11 @@ def test_performance(iterations=1000):
             now = time.time()
             total_time['Python Roll'] += now-before
             before = time.time()
-            uni_rps = unic.Surrogates.embed_time_series_array(
-                    np.reshape(x, (1, -1)), ed, tau)[0]
+            try:
+                uni_rps = unic.Surrogates.embed_time_series_array(
+                        np.reshape(x, (1, -1)), ed, tau)[0]
+            except:
+                continue
             now = time.time()
             total_time['Unicorn'] += now - before
 
