@@ -1,12 +1,10 @@
 import argparse
 import numpy as np
 import os
-import scipy.io.wavfile
 import sys
 
-from sklearn.preprocessing import MaxAbsScaler
-
 from nldrp.config import BASE_PATH
+from nldrp.io.AudioReader import AudioFile
 
 nldpr_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -42,12 +40,10 @@ class SaveeDataloader(object):
             # Fs, wav, wav_duration and normalize wav to [-1,1]
             wavpath = os.path.join(self.data_dir, 'AudioData',
                                    speaker, alnum + '.wav')
-            fs, wav_raw = scipy.io.wavfile.read(wavpath)
-            wav_dur = wav_raw.shape[0] / fs
-            scaler = MaxAbsScaler()
-            wav_raw = wav_raw.reshape(-1, 1)
-            scaler.fit(wav_raw)
-            wav = np.squeeze(scaler.transform(wav_raw))
+            audiofile = AudioFile(wavpath)
+            fs = audiofile.get_fs()
+            wav_dur = audiofile.get_duration_seconds()
+            wav = audiofile.read_audio_file(normalize=True, mix_channels=True)
             # F0 track
             f0path = os.path.join(self.data_dir, 'Annotation',
                                   speaker, 'FrequencyTrack',
@@ -94,14 +90,14 @@ class SaveeDataloader(object):
         # Read phone starting times
         phone_start_times = [float(line.split(' ')[0]) for line in phone_annotation]
         # Make phone list of dictionaries
-        times = phone_start_times.copy()
+        times = list(phone_start_times)
         times.append(wav_dur)
         phone_details = []
         for i, phone in enumerate(phone_labels):
             start = times[i]
             end = times[i + 1]
-            start_sample = round(start * fs)
-            end_sample = round(end * fs)
+            start_sample = int(round(start * fs))
+            end_sample = int(round(end * fs))
             phone_details.append({
                 'phone_label': phone,
                 'start': start,
@@ -135,5 +131,5 @@ if __name__ == "__main__":
     savee_data_obj = SaveeDataloader(savee_path=args.savee_path)
     from pprint import pprint
 
-    pprint(savee_data_obj.data_dict['KL']['a05'])
+    # pprint(savee_data_obj.data_dict['KL']['a05'])
     pprint(savee_data_obj.data_dict['DC']['a01']['phone_details'][0])
