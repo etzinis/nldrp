@@ -6,6 +6,16 @@
 """
 
 import numpy as np
+import os
+import sys
+nldrp_dir = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    '../../')
+sys.path.insert(0, nldrp_dir)
+import config
+sys.path.insert(0, config.PYUNICORN_PATH)
+
+import pyunicorn.timeseries.recurrence_plot as unicorn_rp
 
 def rps(signal, tau, ed):
     """!
@@ -48,6 +58,16 @@ def dummy_RPS(signal,tau,ed):
 
     return phase_space_signal
 
+
+def unicorn_RPS(signal, tau, ed):
+    """!
+    \brief Wrapper of Unicorn Embed Time series static method --
+    Cython efficient implementation"""
+
+    return unicorn_rp.RecurrencePlot.embed_time_series(signal,
+                                                       ed, tau)
+
+
 def test_performance(iterations=1000):
 
     import time
@@ -64,7 +84,9 @@ def test_performance(iterations=1000):
     print '='*5 + ' RPS Performance Testing ' + '='*5
     
     for fs in fs_list:
-        total_time = {'Numpy Roll':0.0, 'Python Roll':0.0}
+        total_time = {'Numpy Roll':0.0,
+                      'Python Roll':0.0,
+                      'Unicorn':0.0}
         win_samples = int(win_secs * fs) 
         print '\n\n'+'~'*5 + ' Testing for Fs={} Samples={} '.format(
                     fs, win_samples)+'~'*5
@@ -82,10 +104,21 @@ def test_performance(iterations=1000):
             now = time.time()
             total_time['Python Roll'] += now-before
 
+            before = time.time()
+            uni_rps = unicorn_RPS(x, tau, ed)
+            now = time.time()
+            total_time['Unicorn'] += now - before
+
             # check the validity of the results 
-            assert (est_rps_n == est_rps_p).all(), (
+            assert (abs(est_rps_n-est_rps_p)< 0.00001).all(), (
                 'All implementations '
                 'of RPS should have the same result')
+
+            # check the validity of the results
+            assert (abs(est_rps_n-uni_rps)< 0.00001).all(), (
+                'All implementations '
+                'of RPS should have the same result')
+
 
 
         for k,v in total_time.items():
