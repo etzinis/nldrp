@@ -38,8 +38,9 @@ class SaveeDataloader(object):
             speaker = uttid.split('_')[0]
             alnum = uttid.split('_')[1]
             # Fs, wav, wav_duration and normalize wav to [-1,1]
-            wavpath = os.path.join(self.data_dir, 'AudioData',
-                                   speaker, alnum + '.wav')
+            wavpath = os.path.abspath(os.path.join(self.data_dir,
+                                              'AudioData',
+                                   speaker, alnum + '.wav'))
             audiofile = AudioFile(wavpath)
             fs = audiofile.get_fs()
             wav_dur = audiofile.get_duration_seconds()
