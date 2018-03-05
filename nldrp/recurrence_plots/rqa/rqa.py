@@ -7,6 +7,7 @@ rqa corresponding module.
 @copyright National Technical University of Athens
 """
 
+import numpy as np
 import os
 import sys
 
@@ -32,10 +33,13 @@ class RQA(object):
                  time_lag=1,
                  embedding_dimension=3,
                  norm='euclidean',
-                 thresh_method='recurrence_thresh',
-                 thresh=0.1):
+                 thresh_method='threshold',
+                 thresh=0.1,
+                 l_min=2,
+                 v_min=2,
+                 w_min=1):
 
-        valid_thresh_methods = ["recurrence_thresh",
+        valid_thresh_methods = ["threshold",
                                 "threshold_std",
                                 "recurrence_rate"]
 
@@ -72,6 +76,10 @@ class RQA(object):
             self.tau = time_lag
             self.ed = embedding_dimension
 
+        self.l_min = l_min
+        self.v_min = v_min
+        self.w_min = w_min
+
 
     def reconstruct_phase_space(self, x):
         """!
@@ -85,7 +93,7 @@ class RQA(object):
             return rps.ami_RPS(x, ed=3)
 
 
-    def binary_recurrence_plot(self, x):
+    def config_binary_RP(self, x):
         """!
         \brief Wrapper for unicorn binary recurrence plot computation
         by using the configured variables and returning them.
@@ -96,8 +104,52 @@ class RQA(object):
 
         embedded_x = self.reconstruct_phase_space(x)
 
-        print embedded_x
-        
+        rp_obj = uni_rp.RecurrencePlot(embedded_x,
+                                       silence_level=10,
+                                       metric=self.norm,
+                                       **self.r_config)
+
+        return rp_obj
+
+
+    def RQA_extraction(self, x, n_features=12):
+        """!
+        \brief Wrapping up various handcrafted features from a binary
+        RP corresponding to the given time series and more
+        specifically the embedded time series as configured in the
+        constructor of the class."""
+
+        rp_obj = self.config_binary_RP(x)
+
+        res = np.empty(n_features)
+
+        res[0] = rp_obj.recurrence_rate()
+        # print 'RR    : {}'.format(t)
+        res[1] = rp_obj.max_diaglength()
+        # print 'L_max : {}'.format(t)
+        res[2] = rp_obj.determinism(l_min=self.l_min)
+        # print 'DET   : {}'.format(t)
+        res[3] = rp_obj.average_diaglength(l_min=self.l_min)
+        # print 'L     : {}'.format(t)
+        res[4] = rp_obj.diag_entropy(l_min=self.l_min)
+        # print 'ENTR  : {}'.format(t)
+        res[5] = rp_obj.max_vertlength()
+        # print 'V_max : {}'.format(t)
+        res[6] = rp_obj.laminarity(v_min=self.v_min)
+        # print 'LAM   : {}'.format(t)
+        res[7] = rp_obj.average_vertlength(v_min=self.v_min)
+        # print 'TT    : {}'.format(t)
+        res[8] = rp_obj.vert_entropy(v_min=self.v_min)
+        # print 'VLiENT: {}'.format(t)
+        res[9] = rp_obj.max_white_vertlength()
+        # print 'W_maxV: {}'.format(t)
+        res[10] = rp_obj.average_white_vertlength(w_min=self.w_min)
+        # print 'W_avgV: {}'.format(t)
+        res[11] = rp_obj.white_vert_entropy(w_min=self.w_min)
+        # print 'W_entV: {}'.format(t)
+
+        return res
+
 
 def test_performance(iterations=1000):
     import numpy as np
@@ -112,11 +164,11 @@ def test_performance(iterations=1000):
     tau = 1
     ed = 3
 
-    valid_thresh_methods = ["recurrence_thresh",
+    valid_thresh_methods = ["threshold",
                             "threshold_std",
                             "recurrence_rate"]
 
-    print '=' * 5 + ' Recur. Plots Performance Testing ' + '=' * 5
+    print '=' * 5 + ' RQA Performance Testing ' + '=' * 5
 
     for fs in fs_list:
         total_time = dict([(v,0.0) for v in valid_thresh_methods])
@@ -133,13 +185,13 @@ def test_performance(iterations=1000):
             for v in total_time:
 
                 before = time.time()
-                bin_rp_obj = RQA(phase_space_method='ad_hoc',
-                                 time_lag=1,
-                                 embedding_dimension=3,
-                                 norm='euclidean',
-                                 thresh_method=v,
-                                 thresh=0.1)
-                bin_rp = bin_rp_obj.binary_recurrence_plot(x)
+                rqa_obj = RQA(phase_space_method='ad_hoc',
+                              time_lag=1,
+                              embedding_dimension=3,
+                              norm='euclidean',
+                              thresh_method=v,
+                              thresh=0.1)
+                bin_rp_obj = rqa_obj.RQA_extraction(x)
                 now = time.time()
                 total_time[v] += now - before
 
@@ -157,10 +209,10 @@ def example_of_usage(x):
                   time_lag=1,
                   embedding_dimension=3,
                   norm='euclidean',
-                  thresh_method='recurrence_thresh',
+                  thresh_method='threshold',
                   thresh=0.1)
 
     return rqa_obj.binary_recurrence_plot(x)
 
 if __name__ == "__main__":
-    test_performance(iterations=1)
+    test_performance(iterations=100)
