@@ -59,7 +59,13 @@ def dummy_RPS(signal,tau,ed):
     return phase_space_signal
 
 
+def ami_RPS(signal, ed=3):
+    """!
+    \brief This uses the Average mutual information in order to find
+    the optimal time lag and possibly the False Nearest Neighbors for
+    determining the optimal embedding dimension."""
 
+    raise NotImplementedError("AMI RPS is not implemented yet!")
 
 
 def cython_RPS(signal, tau, ed):
