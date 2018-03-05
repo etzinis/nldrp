@@ -103,28 +103,85 @@ class SegmentRQAStatistics(object):
         return whole_stats
 
 
-if __name__ == '__main__':
+def test_performance(iterations=5):
+    import time
 
+    f0_list = np.random.uniform(low=40.0, high=700.0,
+                                size=(iterations,))
+    f0_list = np.sort(f0_list)
+    fs_list = [8000, 16000, 44100]
+    win_secs = [0.02, 0.04, 0.06]
+
+    tau = 1
+    ed = 3
+
+    valid_thresh_methods = ["threshold",
+                            "threshold_std",
+                            "recurrence_rate"]
+
+    print '=' * 5 + ' RQA Performance Testing ' + '=' * 5
+
+    for fs in fs_list:
+        total_time = dict([(v,0.0) for v in valid_thresh_methods])
+
+        win_samples = int(win_secs * fs)
+        print '\n\n' + '~' * 5 + ' Testing for Fs={} Samples={}  ' \
+                                 ''.format(
+            fs, win_samples) + '~' * 5
+
+        for f0 in f0_list:
+            x = np.cos(
+                (2. * np.pi * f0 / fs) * np.arange(win_samples))
+
+            for v in total_time:
+
+                before = time.time()
+                rqa_obj = RQA(phase_space_method='ad_hoc',
+                              time_lag=1,
+                              embedding_dimension=3,
+                              norm='euclidean',
+                              thresh_method=v,
+                              thresh=0.1)
+                bin_rp_obj = rqa_obj.RQA_extraction(x)
+                now = time.time()
+                total_time[v] += now - before
+
+                # import matplotlib.pyplot as plt
+                # # plt.imshow(bin_rp)
+                # plt.imshow(bin_rp)
+
+        for k, v in total_time.items():
+            print (">Total Time: {} for {} frames, RP Class: "
+                   "{}".format(v, iterations, k))
+
+
+def example_of_usege():
     frame_duration = 0.02
     frame_stride = 0.01
-    fs=44100
-    s_len=int(0.3*fs)
+    fs = 44100
+    s_len = int(0.3 * fs)
     signal = np.random.normal(0., 1., s_len)
 
     # signal = np.cos((2. * np.pi * 30 / fs) * np.arange(s_len))
 
     seg_extr = SegmentRQAStatistics(
-                 phase_space_method='ad_hoc',
-                 time_lag=1,
-                 embedding_dimension=3,
-                 norm='euclidean',
-                 thresh_method='threshold',
-                 thresh=0.1,
-                 l_min=2,
-                 v_min=2,
-                 w_min=1,
-                 frame_duration=frame_duration,
-                 frame_stride=frame_stride,
-                 fs=fs)
+        phase_space_method='ad_hoc',
+        time_lag=1,
+        embedding_dimension=3,
+        norm='euclidean',
+        thresh_method='threshold',
+        thresh=0.1,
+        l_min=2,
+        v_min=2,
+        w_min=1,
+        frame_duration=frame_duration,
+        frame_stride=frame_stride,
+        fs=fs)
 
     stats = seg_extr.extract(signal)
+    print stats
+
+
+if __name__ == '__main__':
+    test_performance()
+
