@@ -97,6 +97,7 @@ class RQA(object):
         embedded_x = self.reconstruct_phase_space(x)
 
         print embedded_x
+        
 
 def test_performance(iterations=1000):
     import numpy as np
@@ -151,10 +152,15 @@ def test_performance(iterations=1000):
                    "{}".format(v, iterations, k))
 
 
-if __name__ == "__main__":
+def example_of_usage(x):
     rqa_obj = RQA(phase_space_method='ad_hoc',
                   time_lag=1,
                   embedding_dimension=3,
                   norm='euclidean',
                   thresh_method='recurrence_thresh',
                   thresh=0.1)
+
+    return rqa_obj.binary_recurrence_plot(x)
+
+if __name__ == "__main__":
+    test_performance(iterations=1)
