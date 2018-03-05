@@ -85,6 +85,72 @@ class RQA(object):
             return rps.ami_RPS(x, ed=3)
 
 
+    def binary_recurrence_plot(self, x):
+        """!
+        \brief Wrapper for unicorn binary recurrence plot computation
+        by using the configured variables and returning them.
+
+        \warning It is assumed that the given 1d time series x is
+        already normalized and will be embedded in its phase space as
+        configured inside the class constructor."""
+
+        embedded_x = self.reconstruct_phase_space(x)
+
+        print embedded_x
+
+def test_performance(iterations=1000):
+    import numpy as np
+    import time
+
+    f0_list = np.random.uniform(low=40.0, high=700.0,
+                                size=(iterations,))
+    f0_list = np.sort(f0_list)
+    fs_list = [8000, 16000, 44100]
+    win_secs = 0.02
+
+    tau = 1
+    ed = 3
+
+    valid_thresh_methods = ["recurrence_thresh",
+                            "threshold_std",
+                            "recurrence_rate"]
+
+    print '=' * 5 + ' Recur. Plots Performance Testing ' + '=' * 5
+
+    for fs in fs_list:
+        total_time = dict([(v,0.0) for v in valid_thresh_methods])
+
+        win_samples = int(win_secs * fs)
+        print '\n\n' + '~' * 5 + ' Testing for Fs={} Samples={}  ' \
+                                 ''.format(
+            fs, win_samples) + '~' * 5
+
+        for f0 in f0_list:
+            x = np.cos(
+                (2. * np.pi * f0 / fs) * np.arange(win_samples))
+
+            for v in total_time:
+
+                before = time.time()
+                bin_rp_obj = RQA(phase_space_method='ad_hoc',
+                                 time_lag=1,
+                                 embedding_dimension=3,
+                                 norm='euclidean',
+                                 thresh_method=v,
+                                 thresh=0.1)
+                bin_rp = bin_rp_obj.binary_recurrence_plot(x)
+                now = time.time()
+                total_time[v] += now - before
+
+                # import matplotlib.pyplot as plt
+                # # plt.imshow(bin_rp)
+                # plt.imshow(bin_rp)
+
+        for k, v in total_time.items():
+            print (">Total Time: {} for {} frames, RP Class: "
+                   "{}".format(v, iterations, k))
+
+
 if __name__ == "__main__":
     rqa_obj = RQA(phase_space_method='ad_hoc',
                   time_lag=1,
