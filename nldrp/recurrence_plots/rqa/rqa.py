@@ -27,42 +27,55 @@ class RQA(object):
     \brief RQA analysis of a time series"""
 
     def __init__(self,
-                 phase_space_method='ad-hoc',
+                 phase_space_method='ad_hoc',
                  time_lag=1,
                  embedding_dimension=3,
                  norm='euclidean',
-                 recurrence_rate=None,
-                 recurrence_thresh=None):
+                 thresh_method='recurrence_thresh',
+                 thresh=0.1):
 
-        if ((recurrence_rate is None and recurrence_thresh is None)
-            or not (recurrence_rate is None
-                    or recurrence_thresh is None)):
+        valid_thresh_methods = ["recurrence_thresh",
+                                "threshold_std",
+                                "recurrence_rate"]
+
+        if thresh_method not in valid_thresh_methods:
             raise ValueError(("Please specify only one of the "
-                              "recurrence threshold xor recurrence "
-                              "rate in order to construct the "
-                              "recurrence plot"))
-        elif recurrence_thresh is not None:
-            if recurrence_thresh > 0.0 and recurrence_thresh < 1.0:
-                self.r_thresh = recurrence_thresh
-            else:
-                raise ValueError('Recurrence Threshold <{}> not set '
-                                 'into (0,1)'
-                                 ''.format(recurrence_thresh))
+                              "recurrence threshold, recurrence "
+                              "rate or threshold_std in order to "
+                              "construct the recurrence plot"))
         else:
-            if recurrence_rate > 0.0 and recurrence_rate < 1.0:
-                self.r_rate = recurrence_rate
+            if thresh > 0.0 and thresh < 1.0:
+                self.r_config = {thresh_method:thresh}
             else:
                 raise ValueError('Recurrence Rate <{}> not set '
                                  'into (0,1)'
-                                 ''.format(recurrence_rate))
+                                 ''.format(thresh))
 
         valid_norms = ["manhattan", "euclidean", "supremum"]
         if norm not in valid_norms:
             raise ValueError(('Norm: {} is not valid. Pls try one of '
-                              'the following: '.format(valid_norms)))
+                              'the following: {}'.format(
+                              norm, valid_norms)))
         else:
             self.norm = norm
 
-        self.rps_method = phase_space_method
-        self.tau = time_lag
-        self.ed = embedding_dimension
+        valid_phase_space_methods = ['ad_hoc', 'ami_ffn']
+        if phase_space_method not in valid_phase_space_methods:
+            raise ValueError(('Phase Space Method: {} is not valid. '
+                              'Pls try one of '
+                              'the following: {}'.format(
+                              phase_space_method,
+                              valid_phase_space_methods)))
+        else:
+            self.rps_method = phase_space_method
+            self.tau = time_lag
+            self.ed = embedding_dimension
+
+
+if __name__ == "__main__":
+    rqa_obj = RQA(phase_space_method='ad_hoc',
+                  time_lag=1,
+                  embedding_dimension=3,
+                  norm='euclidean',
+                  thresh_method='recurrence_thresh',
+                  thresh=0.1)
