@@ -92,9 +92,6 @@ class SegmentRQAStatistics(object):
 
         frames_rqa_d = deltas.compute(frames_rqa)
 
-        print frames_rqa[5]
-        print frames_rqa[4]
-
         rqa_stats = stats_funcs.compute(frames_rqa)
         rqa_d_stats = stats_funcs.compute(frames_rqa_d)
 
@@ -103,31 +100,35 @@ class SegmentRQAStatistics(object):
         return whole_stats
 
 
-def test_performance(iterations=5):
+def test_performance(fr_dur,
+                     fr_stride,
+                     iterations=3):
     import time
-
     f0_list = np.random.uniform(low=40.0, high=700.0,
                                 size=(iterations,))
-    f0_list = np.sort(f0_list)
+
+    duration = 1.0
     fs_list = [8000, 16000, 44100]
-    win_secs = [0.02, 0.04, 0.06]
 
     tau = 1
     ed = 3
 
     valid_thresh_methods = ["threshold",
-                            "threshold_std",
-                            "recurrence_rate"]
+                            "threshold_std"]
+                            # "recurrence_rate"]
 
-    print '=' * 5 + ' RQA Performance Testing ' + '=' * 5
+    print '=' * 5 + ' Segment RQA Performance Testing for Frame ' \
+                    'Duration {} and Frame Stride {} '.format(fr_dur,
+                    fr_stride) + \
+          '=' * 5
 
     for fs in fs_list:
         total_time = dict([(v,0.0) for v in valid_thresh_methods])
 
-        win_samples = int(win_secs * fs)
-        print '\n\n' + '~' * 5 + ' Testing for Fs={} Samples={}  ' \
-                                 ''.format(
-            fs, win_samples) + '~' * 5
+        win_samples = int(duration * fs)
+        print '\n\n' + '~' * 5 + ' Testing for Fs={} Hz Samples={} ' \
+              'Duration {} secs'.format(fs, win_samples, duration) + \
+              '~' * 5
 
         for f0 in f0_list:
             x = np.cos(
@@ -136,26 +137,40 @@ def test_performance(iterations=5):
             for v in total_time:
 
                 before = time.time()
-                rqa_obj = RQA(phase_space_method='ad_hoc',
-                              time_lag=1,
-                              embedding_dimension=3,
-                              norm='euclidean',
-                              thresh_method=v,
-                              thresh=0.1)
-                bin_rp_obj = rqa_obj.RQA_extraction(x)
+
+                seg_extr = SegmentRQAStatistics(
+                    phase_space_method='ad_hoc',
+                    time_lag=1,
+                    embedding_dimension=3,
+                    norm='euclidean',
+                    thresh_method=v,
+                    thresh=0.1,
+                    l_min=2,
+                    v_min=2,
+                    w_min=1,
+                    frame_duration=fr_dur,
+                    frame_stride=fr_stride,
+                    fs=fs)
+
+                stats = seg_extr.extract(x)
+
                 now = time.time()
                 total_time[v] += now - before
 
-                # import matplotlib.pyplot as plt
-                # # plt.imshow(bin_rp)
-                # plt.imshow(bin_rp)
 
         for k, v in total_time.items():
-            print (">Total Time: {} for {} frames, RP Class: "
+            print (">Total Time: {} for {} wavs, RP Class: "
                    "{}".format(v, iterations, k))
 
 
-def example_of_usege():
+def test_multiple_frames():
+    win_secs = [(0.02, 0.01), (0.04,0.02), (0.06,0.03)]
+    for fr_dur, fr_stride in win_secs:
+        test_performance(fr_dur,
+                         fr_stride)
+
+
+def example_of_usage():
     frame_duration = 0.02
     frame_stride = 0.01
     fs = 44100
@@ -183,5 +198,5 @@ def example_of_usege():
 
 
 if __name__ == '__main__':
-    test_performance()
+    test_multiple_frames()
 
