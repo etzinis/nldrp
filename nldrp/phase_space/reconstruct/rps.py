@@ -59,7 +59,16 @@ def dummy_RPS(signal,tau,ed):
     return phase_space_signal
 
 
-def unicorn_RPS(signal, tau, ed):
+def ami_RPS(signal, ed=3):
+    """!
+    \brief This uses the Average mutual information in order to find
+    the optimal time lag and possibly the False Nearest Neighbors for
+    determining the optimal embedding dimension."""
+
+    raise NotImplementedError("AMI RPS is not implemented yet!")
+
+
+def cython_RPS(signal, tau, ed):
     """!
     \brief Wrapper of Unicorn Embed Time series static method --
     Cython efficient implementation"""
@@ -105,7 +114,7 @@ def test_performance(iterations=1000):
             total_time['Python Roll'] += now-before
 
             before = time.time()
-            uni_rps = unicorn_RPS(x, tau, ed)
+            uni_rps = cython_RPS(x, tau, ed)
             now = time.time()
             total_time['Unicorn'] += now - before
 
