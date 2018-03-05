@@ -20,6 +20,7 @@ import nldrp.config as config
 sys.path.insert(0, config.PYUNICORN_PATH)
 
 import pyunicorn.timeseries.recurrence_plot as uni_rp
+import nldrp.phase_space.reconstruct.rps as rps
 
 
 class RQA(object):
@@ -70,6 +71,18 @@ class RQA(object):
             self.rps_method = phase_space_method
             self.tau = time_lag
             self.ed = embedding_dimension
+
+
+    def reconstruct_phase_space(self, x):
+        """!
+        \brief Phase space reconstruction wrapper for enabling
+        various methods of Phase space reconstruction for 1d time
+        series given (x)"""
+
+        if self.rps_method == 'ad_hoc':
+            return rps.cython_RPS(x, self.tau, self.ed)
+        else:
+            return rps.ami_RPS(x, ed=3)
 
 
 if __name__ == "__main__":
