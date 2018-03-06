@@ -37,6 +37,12 @@ def get_args():
         and a 1d numpy matrix for each one of them.
         """,
         default=nldrp.config.EXTRACTED_FEATURES_PATH )
+    parser.add_argument("--features_fusion_method", type=str,
+                        help="""Linear or RQA nonlinear features or 
+                        their early 
+                        fusion by concatenation""",
+                        default='rqa',
+                        choices=['rqa', 'linear','fusion'])
     parser.add_argument("-tau", type=int,
                         help="""Time Delay Ad-hoc""",
                         default=1)
@@ -107,11 +113,32 @@ def convert_2_numpy_per_utterance(dataset_dic):
     return converted_dic
 
 
-def load_and_convert(config):
+def load_and_convert(method,
+                     config):
+    """!
+    \brief Loads the dictionary form the specified folder and
+    converts it to a dic like the following
+    converted_dic = {
+        'speaker_1':{
+            'x':2d numpy array (n_utterances, n_features)
+            'y':list of strings corresponding to labels
+        }
+        ...
+        'speaker_n':....
+    }
 
-    loaded_dic = load(config)
+    According to the specified method the 2d numpy matrix corresponds
+    to either linear | non-linear | concatenation of both feature sets
+    """
+
+    if method == 'rqa':
+        loaded_dic = load(config)
+    else:
+        raise NotImplementedError('Fusion method: {} is not yet '
+                                  'implemented.'.format(method))
+
     converted_dic = convert_2_numpy_per_utterance(loaded_dic)
-
+    return converted_dic
 
 if __name__ == "__main__":
     """!brief Example of usage"""
@@ -132,4 +159,7 @@ if __name__ == "__main__":
         'frame_stride':args.frame_duration / 2.0,
         'fs':args.fs
     }
-    converted_feats_dic = load_and_convert(config)
+    converted_feats_dic = load_and_convert(args.features_fusion_method,
+                                           config)
+
+    print converted_feats_dic.values()
