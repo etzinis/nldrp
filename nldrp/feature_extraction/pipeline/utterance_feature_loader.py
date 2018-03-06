@@ -8,6 +8,7 @@ from scikit models and kfold--leave one out pipeline.
 """
 
 import argparse
+import numpy as np
 import os
 import sys
 from sklearn.externals import joblib
@@ -16,24 +17,22 @@ nldrp_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     '../../../')
 sys.path.insert(0, nldrp_dir)
+import nldrp.config
 
 
 def get_args():
     """! Command line parser for Utterance level feature loader
     pipeline"""
     parser = argparse.ArgumentParser(
-        description='Utterance level feature laoder pipeline' )
-    parser.add_argument("--cache_dir", type=str,
-        help="""Directory which would be available to store some 
-        binary files for quicker load of dataset""",
-        default='/tmp/')
+        description='Utterance level feature loader pipeline' )
     parser.add_argument("--dataset", type=str,
                         help="""The name of the dataset""",
                         required=True,
                         choices=['SAVEE'])
-    parser.add_argument("-o", "--save_dir", type=str,
-        help="""Where to store the corresponding binary file full of 
-        data that will contain the dictionary for each speaker. 
+    parser.add_argument("-i", "--save_dir", type=str,
+        help="""Where the corresponding binary file full of 
+        data that will contain the dictionary for each speaker is 
+        stored. 
         Another subdic for all the sentences with their ids  
         and a 1d numpy matrix for each one of them.
         """,
@@ -60,6 +59,9 @@ def get_args():
     parser.add_argument("-thresh", type=float,
                         help="""Value of threshold in (0,1)""",
                         default=0.1)
+    parser.add_argument("-fs", type=float,
+                        help="""Sampling frequency Hz""",
+                        default=44100)
     parser.add_argument("--frame_duration", type=float,
                         help="""Frame duration in seconds""",
                         default=0.02)
@@ -67,12 +69,55 @@ def get_args():
     return args
 
 
+def load(config):
+    exper_dat_name = ('{}-rqa-{}-tau-{}-{}-{}-{}-dur-{}-fs-{}'
+                      '.dat'.format(
+        config['dataset'],
+        config['phase_space_method'],
+        config['time_lag'],
+        config['norm'],
+        config['thresh_method'],
+        config['thresh'],
+        config['frame_duration'],
+        config['fs']
+    ))
+
+    utterance_save_dir = os.path.join(config['save_dir'], 'utterance/')
+    save_p = os.path.join(utterance_save_dir, exper_dat_name)
+
+    return joblib.load(save_p)
+
+
+def convert_2_numpy_per_utterance(dataset_dic):
+    converted_dic = {}
+    for spkr in dataset_dic:
+        x_list = []
+        y_list = []
+        converted_dic[spkr] = {}
+        for id, el_dic in dataset_dic[spkr].items():
+            label = el_dic['y']
+            feat_vec = el_dic['x']
+            x_list.append(feat_vec)
+            y_list.append(label)
+
+        this_utt_array = np.array(x_list)
+        converted_dic[spkr]['x']=this_utt_array
+        converted_dic[spkr]['y']=y_list
+
+    return converted_dic
+
+
+def load_and_convert(config):
+
+    loaded_dic = load(config)
+    converted_dic = convert_2_numpy_per_utterance(loaded_dic)
+
+
 if __name__ == "__main__":
     """!brief Example of usage"""
     args = get_args()
     config = {
         'dataset':args.dataset,
-        'cache_dir':args.cache_dir,
         'save_dir':args.save_dir,
         'phase_space_method':args.tau_est_method,
         'time_lag':args.tau,
@@ -84,6 +129,7 @@ if __name__ == "__main__":
         'v_min':2,
         'w_min':1,
         'frame_duration':args.frame_duration,
-        'frame_stride':args.frame_duration / 2.0
+        'frame_stride':args.frame_duration / 2.0,
+        'fs':args.fs
     }
-    run(config)
+    converted_feats_dic = load_and_convert(config)
