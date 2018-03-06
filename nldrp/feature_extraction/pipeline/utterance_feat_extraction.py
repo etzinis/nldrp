@@ -10,6 +10,7 @@ utterance level by using various statistical functionals.
 import argparse
 import os
 import sys
+from sklearn.externals import joblib
 
 nldrp_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -20,15 +21,36 @@ import nldrp.config as config
 
 
 def load_dataset_and_cache(dataset_name,
-                           cache_dir)
+                           cache_dir):
 
-    cache_path = os.path.join(cache_dir, dataset_name)
+    cache_path = os.path.join(cache_dir, dataset_name+'_datadic.bin')
     if os.path.lexists(cache_path):
+        print "Loading from cache..."
+        dataset_dic = joblib.load(cache_path)
+        return dataset_dic
+
+    import nldrp.io.dataloader as dataloader
+
+    if dataset_name == 'SAVEE':
+        dataset_dic = dataloader.SaveeDataloader(
+                      savee_path=config.SAVEE_PATH)
+    else:
+        raise NotImplementedError('Dataset: {} is not yet integrated '
+                            'in this pipeline'.format(dataset_name))
+
+    print "Caching this dataset dictionary..."
+    joblib.dump(dataset_dic, cache_path, compress=3)
+    return dataset_dic
 
 
-def run():
-    pass
+def run(args):
 
+    print "Parsing Dataset <{}>...".format(args.dataset)
+    dataset_dic = load_dataset_and_cache(args.dataset,
+                                         args.cache_dir)
+    print "OK!"
+
+    print "Extracting RQA Measures..."
 
 def get_args():
     """! Command line parser for Utterance level feature pipeline"""
@@ -56,3 +78,4 @@ def get_args():
 if __name__ == "__main__":
     """!brief Example of usage"""
     args = get_args()
+    run(args)
