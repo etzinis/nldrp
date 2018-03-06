@@ -11,6 +11,8 @@ import argparse
 import os
 import sys
 from sklearn.externals import joblib
+from progress.bar import ChargingBar
+import time
 
 nldrp_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -18,6 +20,7 @@ nldrp_dir = os.path.join(
 sys.path.insert(0, nldrp_dir)
 
 import nldrp.config
+import nldrp.recurrence_plots.rqa.seg_stats_rqa as rqa_stats
 
 
 def load_dataset_and_cache(dataset_name,
@@ -31,9 +34,11 @@ def load_dataset_and_cache(dataset_name,
 
     import nldrp.io.dataloader as dataloader
 
+    print "Loading from dataloader..."
     if dataset_name == 'SAVEE':
-        dataset_dic = dataloader.SaveeDataloader(
+        loader_obj = dataloader.SaveeDataloader(
                       savee_path=nldrp.config.SAVEE_PATH)
+        dataset_dic = loader_obj.data_dict
     else:
         raise NotImplementedError('Dataset: {} is not yet integrated '
                             'in this pipeline'.format(dataset_name))
@@ -43,6 +48,31 @@ def load_dataset_and_cache(dataset_name,
     return dataset_dic
 
 
+def get_features_dic(dataset_dic):
+    features_dic = {}
+    total = sum([len(v) for k, v in dataset_dic.items()])
+    bar = ChargingBar("Extracting RQA Measures for {} "
+                      "utterances...".format(total), max=total)
+    for spkr in dataset_dic:
+        features_dic[spkr] = {}
+        for id, raw_dic in dataset_dic[spkr].items():
+            features_dic[spkr][id] = {}
+            fs = raw_dic['Fs']
+            signal = raw_dic['wav']
+
+            seg_extr = rqa_stats.SegmentRQAStatistics(fs=fs, **config)
+            features_dic[spkr][id]['x'] = seg_extr.extract(signal)
+            features_dic[spkr][id]['y'] = raw_dic['emotion']
+
+            bar.next()
+    bar.finish()
+    return features_dic
+
+
+# def save_feature_dic(feature_dic):
+
+
+
 def run(config):
 
     print "Parsing Dataset <{}>...".format(config['dataset'])
@@ -50,7 +80,14 @@ def run(config):
                                          config['cache_dir'])
     print "OK!"
 
-    print "Extracting RQA Measures..."
+    before = time.time()
+    features_dic = get_features_dic(dataset_dic)
+    now = time.time()
+    print "Finished Extraction after: {} seconds!".format(
+         time.strftime('%H:%M:%S', time.gmtime(now - before)))
+
+    save_p = 'dsf'
+    print "Saving Features Dictionary in {}".format(save_p)
 
 def get_args():
     """! Command line parser for Utterance level feature pipeline"""
