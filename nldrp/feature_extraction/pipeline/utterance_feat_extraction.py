@@ -17,7 +17,7 @@ nldrp_dir = os.path.join(
     '../../../')
 sys.path.insert(0, nldrp_dir)
 
-import nldrp.config as config
+import nldrp.config
 
 
 def load_dataset_and_cache(dataset_name,
@@ -33,7 +33,7 @@ def load_dataset_and_cache(dataset_name,
 
     if dataset_name == 'SAVEE':
         dataset_dic = dataloader.SaveeDataloader(
-                      savee_path=config.SAVEE_PATH)
+                      savee_path=nldrp.config.SAVEE_PATH)
     else:
         raise NotImplementedError('Dataset: {} is not yet integrated '
                             'in this pipeline'.format(dataset_name))
@@ -43,11 +43,11 @@ def load_dataset_and_cache(dataset_name,
     return dataset_dic
 
 
-def run(args):
+def run(config):
 
-    print "Parsing Dataset <{}>...".format(args.dataset)
-    dataset_dic = load_dataset_and_cache(args.dataset,
-                                         args.cache_dir)
+    print "Parsing Dataset <{}>...".format(config['dataset'])
+    dataset_dic = load_dataset_and_cache(config['dataset'],
+                                         config['cache_dir'])
     print "OK!"
 
     print "Extracting RQA Measures..."
@@ -71,6 +71,31 @@ def get_args():
         and a 1d numpy matrix for each one of them.
         """,
         default='/raid/processing/talkiq/stereo_converted_recordings' )
+    parser.add_argument("-tau", type=int,
+                        help="""Time Delay Ad-hoc""",
+                        default=1)
+    parser.add_argument("--tau_est_method", type=str,
+                        help="""How to estimate Time Delay (Using 
+                        an adhoc value as set or estimate AMI per 
+                        frame?)""",
+                        default='ad_hoc',
+                        choices=['ad_hoc', 'ami'])
+    parser.add_argument("-norm", type=str,
+                        help="""Norm for computing in RPs""",
+                        default='euclidean',
+                        choices=["manhattan", "euclidean", "supremum"])
+    parser.add_argument("--thresh_method", type=str,
+                        help="""How to threshold RPs""",
+                        default='threshold',
+                        choices=["threshold",
+                                "threshold_std",
+                                "recurrence_rate"])
+    parser.add_argument("-thresh", type=float,
+                        help="""Value of threshold in (0,1)""",
+                        default=0.1)
+    parser.add_argument("--frame_duration", type=float,
+                        help="""Frame duration in seconds""",
+                        default=0.02)
     args = parser.parse_args()
     return args
 
@@ -78,4 +103,20 @@ def get_args():
 if __name__ == "__main__":
     """!brief Example of usage"""
     args = get_args()
-    run(args)
+    config = {
+        'dataset':args.dataset,
+        'cache_dir':args.cache_dir,
+        'save_dir':args.save_dir,
+        'phase_space_method':args.tau_est_method,
+        'time_lag':args.tau,
+        'embedding_dimension':3,
+        'norm':args.norm,
+        'thresh_method':args.thresh_method,
+        'thresh':args.thresh,
+        'l_min':2,
+        'v_min':2,
+        'w_min':1,
+        'frame_duration':args.frame_duration,
+        'frame_stride':args.frame_duration / 2.0
+    }
+    run(config)
