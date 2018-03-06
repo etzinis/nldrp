@@ -122,9 +122,10 @@ def run(config):
 
 
 def get_args():
-    """! Command line parser for Utterance level feature pipeline"""
+    """! Command line parser for Utterance level feature extraction  
+    pipeline"""
     parser = argparse.ArgumentParser(
-        description='Utterance level feature pipeline' )
+        description='Utterance level feature extraction pipeline' )
     parser.add_argument("--cache_dir", type=str,
         help="""Directory which would be available to store some 
         binary files for quicker load of dataset""",
