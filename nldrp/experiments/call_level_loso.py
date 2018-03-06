@@ -12,9 +12,18 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score
 
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
 
 import argparse
 import numpy as np
+import pprint
 import os
 import sys
 
@@ -68,14 +77,45 @@ def compute_metrics(Y_predicted, Y_true):
     return metric_dic
 
 
+def configure_models():
+    models = []
+    models.append(('LR', LogisticRegression()))
+    models.append(('LDA', LinearDiscriminantAnalysis()))
+    models.append(('KNN', KNeighborsClassifier()))
+    models.append(('CART', DecisionTreeClassifier()))
+    models.append(('NB', GaussianNB()))
+    models.append(('SVM', SVC()))
+    models.append(('RF', RandomForestClassifier()))
+    models.append(('ADAb', AdaBoostClassifier()))
+    models.append(('GRADb', GradientBoostingClassifier()))
+    models.append(('QDA', QuadraticDiscriminantAnalysis()))
+    models.append(('LinR', LogisticRegression()))
+    return dict(models)
+
+
+def evaluate_fold(model,
+                  X_te, Y_te,
+                  X_tr, Y_tr):
+
+    model.fit(X_tr, Y_tr)
+    Y_pred = model.predict(X_te)
+    model_metrics = compute_metrics(Y_pred, Y_te)
+    return model_metrics
+
 def loso(fusion_method, config):
 
     features_dic = feature_loader.load_and_convert(fusion_method, config)
+    all_models = configure_models()
+    result_dic = {}
 
-    for te_speaker, X_te, Y_te, X_tr, Y_tr in generate_speaker_folds(
+    for model_name, model in all_models.items():
+        result_dic[model_name] = {}
+        for te_speaker, X_te, Y_te, X_tr, Y_tr in generate_speaker_folds(
             features_dic):
 
-            
+            fold_info = evaluate_fold(model, X_te, Y_te, X_tr, Y_tr)
+            pprint fold_info
+
 
 
 
