@@ -66,11 +66,43 @@ def get_features_dic(dataset_dic):
 
             bar.next()
     bar.finish()
-    return features_dic
+    return features_dic, fs
+
+def safe_mkdirs(path):
+    """! Makes recursively all the directory in input path """
+    if not os.path.exists(path):
+        try:
+            os.makedirs(path)
+        except Exception as e:
+            raise IOError(
+                ("Failed to create recursive directories: "
+                " {}".format(path)
+                )
+            )
 
 
-# def save_feature_dic(feature_dic):
+def save_feature_dic(feature_dic,
+                     config,
+                     fs):
 
+    exper_dat_name = ('{}-rqa-{}-tau-{}-{}-{}-{}-dur-{}-fs-{}'
+                      '.dat'.format(
+                        config['dataset'],
+                        config['phase_space_method'],
+                        config['time_lag'],
+                        config['norm'],
+                        config['thresh_method'],
+                        config['thresh'],
+                        config['frame_duration'],
+                        fs
+                      ))
+
+    utterance_save_dir = os.path.join(config['save_dir'], 'utterance/')
+    safe_mkdirs(utterance_save_dir)
+    save_p = os.path.join(utterance_save_dir, exper_dat_name)
+    print "Saving Features Dictionary in {}".format(save_p)
+    joblib.dump(feature_dic, save_p, compress=3)
+    print "OK!"
 
 
 def run(config):
@@ -81,13 +113,13 @@ def run(config):
     print "OK!"
 
     before = time.time()
-    features_dic = get_features_dic(dataset_dic)
+    features_dic, fs = get_features_dic(dataset_dic)
     now = time.time()
     print "Finished Extraction after: {} seconds!".format(
          time.strftime('%H:%M:%S', time.gmtime(now - before)))
 
-    save_p = 'dsf'
-    print "Saving Features Dictionary in {}".format(save_p)
+    save_feature_dic(features_dic, config, fs)
+
 
 def get_args():
     """! Command line parser for Utterance level feature pipeline"""
@@ -107,7 +139,7 @@ def get_args():
         Another subdic for all the sentences with their ids  
         and a 1d numpy matrix for each one of them.
         """,
-        default='/raid/processing/talkiq/stereo_converted_recordings' )
+        default=nldrp.config.EXTRACTED_FEATURES_PATH )
     parser.add_argument("-tau", type=int,
                         help="""Time Delay Ad-hoc""",
                         default=1)
