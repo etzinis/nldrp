@@ -36,7 +36,8 @@ class SegmentRQAStatistics(object):
                  w_min=1,
                  frame_duration=0.02,
                  frame_stride=0.01,
-                 fs=None):
+                 fs=None,
+                 **kwargs):
 
         self.frame_duration=frame_duration
         self.frame_stride=frame_stride
