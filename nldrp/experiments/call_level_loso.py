@@ -6,6 +6,13 @@ models for the configured experiment.
 @copyright National Technical University of Athens
 """
 
+from sklearn.metrics import recall_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
+
+
 import argparse
 import numpy as np
 import os
@@ -31,17 +38,47 @@ def generate_speaker_folds(features_dic):
             Y_tr += tr_data['y']
 
         X_tr = np.concatenate(x_tr_list, axis=0)
-        yield te_speaker, te_data['y'], X_tr, Y_tr
+        yield te_speaker, te_data['x'], te_data['y'], X_tr, Y_tr
+
+
+def compute_metrics(Y_predicted, Y_true):
+    uw_f1 = f1_score(Y_predicted, Y_true, average='macro')
+    w_f1 = f1_score(Y_predicted, Y_true, average='micro')
+
+    uw_rec = recall_score(Y_predicted, Y_true, average='macro')
+    w_rec = recall_score(Y_predicted, Y_true, average='micro')
+
+    uw_prec = precision_score(Y_predicted, Y_true, average='macro')
+    w_prec = precision_score(Y_predicted, Y_true, average='micro')
+
+    w_acc = accuracy_score(Y_predicted, Y_true)
+    cmat = confusion_matrix(Y_predicted, Y_true)
+    uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1))).mean()
+
+    metrics_l = [('uw_f1', uw_f1),
+                 ('w_f1', w_f1),
+                 ('uw_rec', uw_rec),
+                 ('w_rec', w_rec),
+                 ('uw_prec', uw_prec),
+                 ('w_prec', w_prec),
+                 ('uw_acc', uw_acc),
+                 ('w_acc', w_acc)]
+
+    metric_dic = dict(metrics_l)
+    return metric_dic
 
 
 def loso(fusion_method, config):
 
     features_dic = feature_loader.load_and_convert(fusion_method, config)
 
-    for X_te, Y_te, X_tr, Y_tr in generate_speaker_folds(features_dic):
-        print X_te
-        print len(Y_te)
-        print len(Y_tr)
+    for te_speaker, X_te, Y_te, X_tr, Y_tr in generate_speaker_folds(
+            features_dic):
+
+            
+
+
+
 
 
 def get_args():
