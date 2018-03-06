@@ -122,7 +122,7 @@ def run(config):
 
 
 def get_args():
-    """! Command line parser for Utterance level feature extraction  
+    """! Command line parser for Utterance level feature extraction
     pipeline"""
     parser = argparse.ArgumentParser(
         description='Utterance level feature extraction pipeline' )
