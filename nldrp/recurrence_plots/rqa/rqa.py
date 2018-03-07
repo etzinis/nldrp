@@ -18,7 +18,7 @@ sys.path.insert(0, nldrp_dir)
 
 import nldrp.config as config
 
-sys.path.insert(0, config.PYUNICORN_PATH)
+#sys.path.insert(0, config.PYUNICORN_PATH)
 
 import pyunicorn.timeseries.recurrence_plot as uni_rp
 import nldrp.phase_space.reconstruct.rps as rps

@@ -48,7 +48,7 @@ def load_dataset_and_cache(dataset_name,
     return dataset_dic
 
 
-def get_features_dic(dataset_dic):
+def get_features_dic(dataset_dic, config):
     features_dic = {}
     total = sum([len(v) for k, v in dataset_dic.items()])
     bar = ChargingBar("Extracting RQA Measures for {} "
@@ -113,7 +113,7 @@ def run(config):
     print "OK!"
 
     before = time.time()
-    features_dic, fs = get_features_dic(dataset_dic)
+    features_dic, fs = get_features_dic(dataset_dic, config)
     now = time.time()
     print "Finished Extraction after: {} seconds!".format(
          time.strftime('%H:%M:%S', time.gmtime(now - before)))
