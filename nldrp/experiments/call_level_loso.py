@@ -62,7 +62,11 @@ def compute_metrics(Y_predicted, Y_true):
 
     w_acc = accuracy_score(Y_predicted, Y_true)
     cmat = confusion_matrix(Y_predicted, Y_true)
-    uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1))).mean()
+    with np.errstate(divide='ignore'):
+        uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1) + 1e-6
+                                     )).mean()
+        if np.isnan(uw_acc):
+            uw_acc = 0.
 
     metrics_l = [('uw_f1', uw_f1),
                  ('w_f1', w_f1),
@@ -97,8 +101,21 @@ def evaluate_fold(model,
                   X_te, Y_te,
                   X_tr, Y_tr):
 
-    model.fit(X_tr, Y_tr)
-    Y_pred = model.predict(X_te)
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+    from sklearn.manifold import LocallyLinearEmbedding
+    # pca = PCA(n_components=int(X_tr.shape[1] / 10)).fit(X_tr)
+    n_components = int(X_tr.shape[1] / 10)
+    pca = LocallyLinearEmbedding(n_components=n_components,
+                                 n_neighbors=(n_components + 1),
+                                 method='modified').fit(X_tr)
+    X_tr = pca.transform(X_tr)
+    scaler = StandardScaler().fit(X_tr)
+    X_tr_scaled = scaler.transform(X_tr)
+    model.fit(X_tr_scaled, Y_tr)
+    X_te = pca.transform(X_te)
+    X_te_scaled = scaler.transform(X_te)
+    Y_pred = model.predict(X_te_scaled)
     model_metrics = compute_metrics(Y_pred, Y_te)
     return model_metrics
 
@@ -114,10 +131,21 @@ def loso(fusion_method, config):
             features_dic):
 
             fold_info = evaluate_fold(model, X_te, Y_te, X_tr, Y_tr)
-            pprint fold_info
+            print model_name, te_speaker
+            pprint.pprint(fold_info)
+            if result_dic[model_name]:
+                for k,v in fold_info.items():
+                    result_dic[model_name][k].append(v)
+            else:
+                for k, v in fold_info.items():
+                    result_dic[model_name][k] = [v]
+
+        for k, v in result_dic[model_name].items():
+            result_dic[model_name][k] = '{} +- {}'.format(
+                np.mean(v), np.std(v))
 
 
-
+    # pprint.pprint(result_dic)
 
 
 
