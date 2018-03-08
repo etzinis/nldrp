@@ -105,12 +105,43 @@ def save_feature_dic(feature_dic,
     print "OK!"
 
 
+def features_are_already_extracted(config, fs):
+    exper_dat_name = ('{}-rqa-{}-tau-{}-{}-{}-{}-dur-{}-fs-{}'
+                      '.dat'.format(
+        config['dataset'],
+        config['phase_space_method'],
+        config['time_lag'],
+        config['norm'],
+        config['thresh_method'],
+        config['thresh'],
+        config['frame_duration'],
+        fs
+    ))
+
+    utterance_save_dir = os.path.join(config['save_dir'], 'utterance/')
+    save_p = os.path.join(utterance_save_dir, exper_dat_name)
+    if os.path.lexists(save_p):
+        print "Found features in: {}".format(save_p)
+        return True
+    return False
+
+
 def run(config):
 
     print "Parsing Dataset <{}>...".format(config['dataset'])
     dataset_dic = load_dataset_and_cache(config['dataset'],
                                          config['cache_dir'])
     print "OK!"
+
+    for spkr in dataset_dic:
+        dataset_dic[spkr] = {}
+        for id, raw_dic in dataset_dic[spkr].items():
+            dataset_dic[spkr][id] = {}
+            fs = raw_dic['Fs']
+            break
+        break
+    if features_are_already_extracted(config, fs):
+        return
 
     before = time.time()
     features_dic, fs = get_features_dic(dataset_dic, config)
