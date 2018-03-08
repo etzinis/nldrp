@@ -7,7 +7,7 @@ import time
 
 nldrp_dir = os.path.join(
    os.path.dirname(os.path.realpath(__file__)),
-   '../../../../')
+   '../../../')
 sys.path.insert(0, nldrp_dir)
 
 import nldrp.config
@@ -20,17 +20,26 @@ valid_thresh_methods = ["threshold",
 
 valid_norms = ["manhattan", "euclidean", "supremum"]
 
-threshold_ratios = [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5]
+threshold_ratios = [0.05, 0.1, 0.15]
 
 frame_durations = [0.02, 0.03, 0.05]
 
 taus = [1, 7]
 
+cnt = 1
+search_space = (len(valid_thresh_methods) *
+                len(threshold_ratios) *
+                len(frame_durations) *
+                len(valid_norms))
+
+
 for thres_method in valid_thresh_methods:
     for norm in valid_norms:
         for thres in threshold_ratios:
             for fd in frame_durations:
-                configa={
+                print "Extracting {}/{}...".format(cnt, search_space)
+                cnt += 1
+		configa={
                     'dataset':'SAVEE',
                     'cache_dir': '/tmp/',
                     'save_dir':nldrp.config.EXTRACTED_FEATURES_PATH,
