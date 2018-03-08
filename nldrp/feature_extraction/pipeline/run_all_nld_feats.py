@@ -7,7 +7,7 @@ import time
 
 nldrp_dir = os.path.join(
    os.path.dirname(os.path.realpath(__file__)),
-   '../../../../')
+   '../../../')
 sys.path.insert(0, nldrp_dir)
 
 import nldrp.config
@@ -20,7 +20,7 @@ valid_thresh_methods = ["threshold",
 
 valid_norms = ["manhattan", "euclidean", "supremum"]
 
-threshold_ratios = [0.05, 0.1, 0.15, 0.2, 0.25, 0.5]
+threshold_ratios = [0.05, 0.1, 0.15]
 
 frame_durations = [0.02, 0.03, 0.05]
 
@@ -60,5 +60,3 @@ for thres_method in valid_thresh_methods:
                 except Exception as e:
                     print(e)
                     exit()
-                    pprint.pprint(configa)
-                    pass
