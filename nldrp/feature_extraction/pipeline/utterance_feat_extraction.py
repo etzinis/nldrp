@@ -133,10 +133,9 @@ def run(config):
                                          config['cache_dir'])
     print "OK!"
 
+    fs = None
     for spkr in dataset_dic:
-        dataset_dic[spkr] = {}
         for id, raw_dic in dataset_dic[spkr].items():
-            dataset_dic[spkr][id] = {}
             fs = raw_dic['Fs']
             break
         break
