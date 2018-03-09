@@ -66,19 +66,44 @@ def get_features_dic(dataset_dic, config_p):
         features_dic[spkr] = {}
         for id, raw_dic in dataset_dic[spkr].items():
             features_dic[spkr][id] = {}
-            fs = raw_dic['Fs']
+            # fs = raw_dic['Fs']
             # signal = raw_dic['wav']
             wavpath = raw_dic['wavpath']
 
-            opensmile_extract(config_p,
+            feat_vec = opensmile_extract(config_p,
                               wavpath,
                               '/tmp/opensmile_feats_tmp')
-            features_dic[spkr][id]['x'] = seg_extr.extract(signal)
-            # features_dic[spkr][id]['y'] = raw_dic['emotion']
+            features_dic[spkr][id]['x'] = feat_vec
+            features_dic[spkr][id]['y'] = raw_dic['emotion']
 
             bar.next()
     bar.finish()
-    return features_dic, fs
+    return features_dic
+
+
+def safe_mkdirs(path):
+    """! Makes recursively all the directory in input path """
+    if not os.path.exists(path):
+        try:
+            os.makedirs(path)
+        except Exception as e:
+            raise IOError(
+                ("Failed to create recursive directories: "
+                " {}".format(path)
+                )
+            )
+
+
+def save_features_dic(opensm_config,
+                      features_dic,
+                      save_dir):
+    utterance_save_dir = os.path.join(save_dir, 'utterance/')
+    safe_mkdirs(utterance_save_dir)
+    save_p = os.path.join(utterance_save_dir, opensm_config)
+    print "Saving Opensmile Features Dictionary in {}".format(save_p)
+    joblib.dump(features_dic, save_p, compress=3)
+    print "OK!"
+
 
 
 def run(dataset,
@@ -89,8 +114,10 @@ def run(dataset,
         dataset_dic = load_data(dataset)
         print "OK!"
 
-        features_dic, fs = get_features_dic(dataset_dic, config_p)
+        features_dic = get_features_dic(dataset_dic, config_p)
 
+        opensm_config = dataset+'_linear_emobase2010'
+        save_features_dic(opensm_config, features_dic, save_dir)
 
 def get_args():
     """! Command line parser for Opensmile Utterance level feature
