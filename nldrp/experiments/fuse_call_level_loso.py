@@ -26,8 +26,9 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 
 from sklearn.externals import joblib
-import elm
+# import elm
 
+import pandas as pd
 import argparse
 import numpy as np
 import pprint
@@ -77,10 +78,10 @@ def compute_metrics(Y_predicted, Y_true):
 
     metrics_l = [('uw_f1', uw_f1),
                  ('w_f1', w_f1),
-                 ('uw_rec', uw_rec),
-                 ('w_rec', w_rec),
-                 ('uw_prec', uw_prec),
-                 ('w_prec', w_prec),
+                 # ('uw_rec', uw_rec),
+                 # ('w_rec', w_rec),
+                 # ('uw_prec', uw_prec),
+                 # ('w_prec', w_prec),
                  ('uw_acc', uw_acc),
                  ('w_acc', w_acc)]
 
@@ -89,32 +90,36 @@ def compute_metrics(Y_predicted, Y_true):
 
 
 def configure_models():
-    # class ELMWrapper(object):
-    #     def __init__(self, **kwargs):
-    #         self.kernel = elm.ELMKernel()
-    #     def predict(self, x):
-    #         return self.kernel.test(x)
-    #     def fit(self, x_tr, y_tr):
-    #         self.le = LabelEncoder()
-    #         self.le.fit(y_tr)
-    #         int_labels = self.le.transform(y_tr)
-    #         labels_col = np.asarray(int_labels)
-    #         labels_col = np.reshape(labels_col, (-1,1))
-    #         new_data = np.concatenate([labels_col, x_tr], axis=1)
-    #         self.kernel.search_param(new_data, cv="kfold",
-    #                                  of="accuracy",
-    #                                  eval=10)
-    #         self.kernel.train(new_data)
-    #         exit()
+    class ELMWrapper(object):
+        def __init__(self, **kwargs):
+            self.kernel = elm.ELMKernel()
+        def predict(self, x):
+            return self.kernel.test(x)
+        def fit(self, x_tr, y_tr):
+            self.le = LabelEncoder()
+            self.le.fit(y_tr)
+            int_labels = self.le.transform(y_tr)
+            labels_col = np.asarray(int_labels)
+            labels_col = np.reshape(labels_col, (-1,1))
+            new_data = np.concatenate([labels_col, x_tr], axis=1)
+
+            new_data = elm.read('/home/thymios/Desktop/iris.data')
+            print new_data.shape
+
+            self.kernel.search_param(new_data,
+                                     of="accuracy",
+                                     eval=10)
+            # self.kernel.train(new_data)
+            exit()
 
     models = []
-    models.append(('ELM', ELMWrapper()))
+    # models.append(('ELM', ELMWrapper()))
     # models.append(('LR', LogisticRegression()))
     # models.append(('LDA', LinearDiscriminantAnalysis()))
-    # models.append(('KNN', KNeighborsClassifier()))
+    models.append(('KNN', KNeighborsClassifier()))
     # models.append(('CART', DecisionTreeClassifier()))
     # models.append(('NB', GaussianNB()))
-    # models.append(('SVM', SVC()))
+    models.append(('SVM', SVC()))
     # models.append(('RF', RandomForestClassifier()))
     # models.append(('ADAb', AdaBoostClassifier()))
     # models.append(('GRADb', GradientBoostingClassifier()))
@@ -125,23 +130,16 @@ def configure_models():
     return dict(models)
 
 
-def evaluate_fold(model,
-                  X_te, Y_te,
-                  X_tr, Y_tr):
-
-
-    from sklearn.manifold import LocallyLinearEmbedding
-
+def speaker_dependent(model,
+                      X_te, Y_te,
+                      X_tr, Y_tr):
     n_components = int(X_tr.shape[1] / 2)
     # n_components = 1500
     pca = PCA(n_components=n_components).fit(X_tr)
-    # # pca = LocallyLinearEmbedding(n_components=n_components,
-    # #                              n_neighbors=(n_components + 1),
-    # #                              method='modified').fit(X_tr)
 
     # X_tr = pca.transform(X_tr)
     scaler = StandardScaler().fit(X_tr)
-    X_tr = scaler.transform(X_tr)
+    # X_tr = scaler.transform(X_tr)
     model.fit(X_tr, Y_tr)
     # X_te = pca.transform(X_te)
     scaler_te = StandardScaler().fit(X_te)
@@ -151,29 +149,86 @@ def evaluate_fold(model,
     return model_metrics
 
 
+def speaker_independent(model,
+                      X_te, Y_te,
+                      X_tr, Y_tr):
+    n_components = int(X_tr.shape[1] / 10)
+    # n_components = 1500
+    pca = PCA(n_components=n_components).fit(X_tr)
+
+    X_tr = pca.transform(X_tr)
+    # scaler = StandardScaler().fit(X_tr)
+    # X_tr = scaler.transform(X_tr)
+    model.fit(X_tr, Y_tr)
+    X_te = pca.transform(X_te)
+    # X_te = scaler.transform(X_te)
+    Y_pred = model.predict(X_te)
+    model_metrics = compute_metrics(Y_pred, Y_te)
+    return model_metrics
+
+
+def evaluate_fold(model,
+                  X_te, Y_te,
+                  X_tr, Y_tr):
+    all_X = np.concatenate([X_tr, X_te], axis=0)
+    scaler = StandardScaler().fit(all_X)
+    X_tr = scaler.transform(X_tr)
+    X_te = scaler.transform(X_te)
+
+    sd_metrics = speaker_dependent(model,
+                                   X_te, Y_te,
+                                   X_tr, Y_tr)
+
+
+    si_metrics = speaker_independent(model,
+                                   X_te, Y_te,
+                                   X_tr, Y_tr)
+
+    return sd_metrics, si_metrics
+
 def evaluate_loso(features_dic):
     all_models = configure_models()
     result_dic = {}
+    all_results = {}
 
     for model_name, model in all_models.items():
         result_dic[model_name] = {}
+        experiments = ['dependent', 'independent']
+
         for te_speaker, X_te, Y_te, X_tr, Y_tr in generate_speaker_folds(
                 features_dic):
 
-            fold_info = evaluate_fold(model, X_te, Y_te, X_tr, Y_tr)
+            m = {}
+            m['dependent'], m['independent'] = evaluate_fold(
+                                                    model, X_te,
+                                                    Y_te, X_tr, Y_tr)
 
             if result_dic[model_name]:
-                for k, v in fold_info.items():
-                    result_dic[model_name][k].append(v)
+                for exp in experiments:
+                    for k, v in m[exp].items():
+                        col_name = exp + '_' + k
+                        result_dic[model_name][col_name].append(v)
             else:
-                for k, v in fold_info.items():
-                    result_dic[model_name][k] = [v]
+                for exp in experiments:
+                    for k, v in m[exp].items():
+                        col_name = exp + '_' + k
+                        result_dic[model_name][col_name]=[v]
 
         print model_name
         for k, v in result_dic[model_name].items():
             result_dic[model_name][k] = '{} +- {}'.format(
                 np.mean(v), np.std(v))
-            print k, result_dic[model_name][k]
+        print result_dic[model_name]
+
+    for k in result_dic[model_name]:
+        all_results[k] = [result_dic[mo][k] for mo in
+                                  all_models]
+    all_results['model'] = [mo for mo in all_models]
+
+    print all_results
+
+    df = pd.DataFrame.from_dict(all_results)
+    pprint.pprint(df)
 
     # pprint.pprint(result_dic)
 
