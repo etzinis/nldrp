@@ -21,7 +21,12 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, Gradien
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import LabelEncoder
+
 from sklearn.externals import joblib
+import elm
 
 import argparse
 import numpy as np
@@ -84,18 +89,39 @@ def compute_metrics(Y_predicted, Y_true):
 
 
 def configure_models():
+    # class ELMWrapper(object):
+    #     def __init__(self, **kwargs):
+    #         self.kernel = elm.ELMKernel()
+    #     def predict(self, x):
+    #         return self.kernel.test(x)
+    #     def fit(self, x_tr, y_tr):
+    #         self.le = LabelEncoder()
+    #         self.le.fit(y_tr)
+    #         int_labels = self.le.transform(y_tr)
+    #         labels_col = np.asarray(int_labels)
+    #         labels_col = np.reshape(labels_col, (-1,1))
+    #         new_data = np.concatenate([labels_col, x_tr], axis=1)
+    #         self.kernel.search_param(new_data, cv="kfold",
+    #                                  of="accuracy",
+    #                                  eval=10)
+    #         self.kernel.train(new_data)
+    #         exit()
+
     models = []
+    models.append(('ELM', ELMWrapper()))
     # models.append(('LR', LogisticRegression()))
-    models.append(('LDA', LinearDiscriminantAnalysis()))
-    models.append(('KNN', KNeighborsClassifier()))
+    # models.append(('LDA', LinearDiscriminantAnalysis()))
+    # models.append(('KNN', KNeighborsClassifier()))
     # models.append(('CART', DecisionTreeClassifier()))
     # models.append(('NB', GaussianNB()))
-    models.append(('SVM', SVC()))
-    models.append(('RF', RandomForestClassifier()))
+    # models.append(('SVM', SVC()))
+    # models.append(('RF', RandomForestClassifier()))
     # models.append(('ADAb', AdaBoostClassifier()))
     # models.append(('GRADb', GradientBoostingClassifier()))
     # models.append(('QDA', QuadraticDiscriminantAnalysis()))
     # models.append(('LinR', LogisticRegression()))
+
+
     return dict(models)
 
 
@@ -103,8 +129,7 @@ def evaluate_fold(model,
                   X_te, Y_te,
                   X_tr, Y_tr):
 
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.decomposition import PCA
+
     from sklearn.manifold import LocallyLinearEmbedding
 
     n_components = int(X_tr.shape[1] / 2)
@@ -113,6 +138,7 @@ def evaluate_fold(model,
     # # pca = LocallyLinearEmbedding(n_components=n_components,
     # #                              n_neighbors=(n_components + 1),
     # #                              method='modified').fit(X_tr)
+
     # X_tr = pca.transform(X_tr)
     scaler = StandardScaler().fit(X_tr)
     X_tr = scaler.transform(X_tr)
