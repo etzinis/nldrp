@@ -24,8 +24,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import Normalizer
+
 
 from sklearn.externals import joblib
+import tabulate
 # import elm
 
 import pandas as pd
@@ -90,32 +95,32 @@ def compute_metrics(Y_predicted, Y_true):
 
 
 def configure_models():
-    class ELMWrapper(object):
-        def __init__(self, **kwargs):
-            self.kernel = elm.ELMKernel()
-        def predict(self, x):
-            return self.kernel.test(x)
-        def fit(self, x_tr, y_tr):
-            self.le = LabelEncoder()
-            self.le.fit(y_tr)
-            int_labels = self.le.transform(y_tr)
-            labels_col = np.asarray(int_labels)
-            labels_col = np.reshape(labels_col, (-1,1))
-            new_data = np.concatenate([labels_col, x_tr], axis=1)
-
-            new_data = elm.read('/home/thymios/Desktop/iris.data')
-            print new_data.shape
-
-            self.kernel.search_param(new_data,
-                                     of="accuracy",
-                                     eval=10)
-            # self.kernel.train(new_data)
-            exit()
+    # class ELMWrapper(object):
+    #     def __init__(self, **kwargs):
+    #         self.kernel = elm.ELMKernel()
+    #     def predict(self, x):
+    #         return self.kernel.test(x)
+    #     def fit(self, x_tr, y_tr):
+    #         self.le = LabelEncoder()
+    #         self.le.fit(y_tr)
+    #         int_labels = self.le.transform(y_tr)
+    #         labels_col = np.asarray(int_labels)
+    #         labels_col = np.reshape(labels_col, (-1,1))
+    #         new_data = np.concatenate([labels_col, x_tr], axis=1)
+    #
+    #         new_data = elm.read('/home/thymios/Desktop/iris.data')
+    #         print new_data.shape
+    #
+    #         self.kernel.search_param(new_data,
+    #                                  of="accuracy",
+    #                                  eval=10)
+    #         # self.kernel.train(new_data)
+    #         exit()
 
     models = []
     # models.append(('ELM', ELMWrapper()))
-    # models.append(('LR', LogisticRegression()))
-    # models.append(('LDA', LinearDiscriminantAnalysis()))
+    models.append(('LR', LogisticRegression()))
+    models.append(('LDA', LinearDiscriminantAnalysis()))
     models.append(('KNN', KNeighborsClassifier()))
     # models.append(('CART', DecisionTreeClassifier()))
     # models.append(('NB', GaussianNB()))
@@ -134,16 +139,21 @@ def speaker_dependent(model,
                       X_te, Y_te,
                       X_tr, Y_tr):
     n_components = int(X_tr.shape[1] / 2)
-    # n_components = 1500
-    pca = PCA(n_components=n_components).fit(X_tr)
-
+    # n_components = 3000
+    # pca = PCA(n_components=n_components).fit(X_tr)
+    #
     # X_tr = pca.transform(X_tr)
     scaler = StandardScaler().fit(X_tr)
-    # X_tr = scaler.transform(X_tr)
-    model.fit(X_tr, Y_tr)
+    X_tr = scaler.transform(X_tr)
+    #
     # X_te = pca.transform(X_te)
     scaler_te = StandardScaler().fit(X_te)
     X_te = scaler_te.transform(X_te)
+
+
+    model.fit(X_tr, Y_tr)
+    # X_te = pca.transform(X_te)
+
     Y_pred = model.predict(X_te)
     model_metrics = compute_metrics(Y_pred, Y_te)
     return model_metrics
@@ -153,15 +163,12 @@ def speaker_independent(model,
                       X_te, Y_te,
                       X_tr, Y_tr):
     n_components = int(X_tr.shape[1] / 10)
-    # n_components = 1500
-    pca = PCA(n_components=n_components).fit(X_tr)
+    n_components = 3000
+    # pca = PCA(n_components=n_components).fit(X_tr)
+    # X_tr = pca.transform(X_tr)
+    # X_te = pca.transform(X_te)
 
-    X_tr = pca.transform(X_tr)
-    # scaler = StandardScaler().fit(X_tr)
-    # X_tr = scaler.transform(X_tr)
     model.fit(X_tr, Y_tr)
-    X_te = pca.transform(X_te)
-    # X_te = scaler.transform(X_te)
     Y_pred = model.predict(X_te)
     model_metrics = compute_metrics(Y_pred, Y_te)
     return model_metrics
@@ -217,7 +224,7 @@ def evaluate_loso(features_dic):
         print model_name
         for k, v in result_dic[model_name].items():
             result_dic[model_name][k] = '{} +- {}'.format(
-                np.mean(v), np.std(v))
+                round(np.mean(v), 4), round(np.std(v), 4))
         print result_dic[model_name]
 
     for k in result_dic[model_name]:
@@ -225,10 +232,10 @@ def evaluate_loso(features_dic):
                                   all_models]
     all_results['model'] = [mo for mo in all_models]
 
-    print all_results
 
     df = pd.DataFrame.from_dict(all_results)
-    pprint.pprint(df)
+    df.to_clipboard()
+
 
     # pprint.pprint(result_dic)
 
@@ -278,7 +285,7 @@ def fusion_loso(list_of_paths):
             raise e
 
     fused_converted_dic = convert_2_numpy_per_utterance(final_data_dic)
-    evaluate_loso(fused_converted_dic)
+    return evaluate_loso(fused_converted_dic)
 
 
 def get_args():
