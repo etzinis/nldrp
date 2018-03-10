@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score
+from sklearn.preprocessing import StandardScaler
 
 
 def compute_metrics(Y_predicted, Y_true):
@@ -33,9 +34,61 @@ def compute_metrics(Y_predicted, Y_true):
     return metric_dic
 
 
+def generate_speaker_dependent_folds(features_dic):
+    for te_speaker, te_data in features_dic.items():
+        scaler = StandardScaler().fit(te_data['x'])
+        x_te = scaler.transform(te_data['x'])
+        x_tr_list = []
+        Y_tr = []
+        for tr_speaker, tr_data in features_dic.items():
+            if tr_speaker == te_speaker:
+                continue
+            scaler = StandardScaler().fit(tr_data['x'])
+            sp_x = scaler.transform(tr_data['x'])
+            x_tr_list.append(sp_x)
+            Y_tr += tr_data['y']
+
+        X_tr = np.concatenate(x_tr_list, axis=0)
+        yield te_speaker, x_te, te_data['y'], X_tr, Y_tr
+
+
 def loso_with_best_models(features_dic):
-    pass
-    print yolo
+    """!
+    \brief This is the function you should call if you have a
+    dictionary with keys as the speakers and each one has a
+    corresponding 2D matrix and a 1d label vector for each one.
+    Namely: converted_dic[spkr]['x'] = X_2D
+            converted_dic[spkr]['y'] = y_list"""
+
+
+    df
+
+
+
+def command_line_optimizer(list_of_paths):
+
+    speakers_dic = fuse_all_configurations(list_of_paths)
+
+    loso_with_best_models(speakers_dic)
+
+
+def convert_2_numpy_per_utterance(dataset_dic):
+    converted_dic = {}
+    for spkr in dataset_dic:
+        x_list = []
+        y_list = []
+        converted_dic[spkr] = {}
+        for id, el_dic in dataset_dic[spkr].items():
+            label = el_dic['y']
+            feat_vec = el_dic['x']
+            x_list.append(feat_vec)
+            y_list.append(label)
+
+        this_utt_array = np.array(x_list)
+        converted_dic[spkr]['x'] = this_utt_array
+        converted_dic[spkr]['y'] = y_list
+
+    return converted_dic
 
 
 def fuse_all_configurations(list_of_paths):
@@ -64,8 +117,7 @@ def fuse_all_configurations(list_of_paths):
             raise e
 
     fused_converted_dic = convert_2_numpy_per_utterance(final_data_dic)
-    return evaluate_loso(fused_converted_dic)
-
+    return fused_converted_dic
 
 def get_args():
     """! Command line parser for Utterance level classification Leave
@@ -84,4 +136,4 @@ def get_args():
 if __name__ == "__main__":
     """!brief Example of usage"""
     args = get_args()
-    loso_with_best_models(args.input_features_paths)
+    command_line_optimizer(args.input_features_paths)
