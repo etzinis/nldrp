@@ -37,6 +37,7 @@ import pandas as pd
 import argparse
 import numpy as np
 import pprint
+import json
 import os
 import sys
 
@@ -157,8 +158,6 @@ def speaker_dependent(model,
     #scaler = StandardScaler().fit(X_tr)
     #X_tr1 = scaler.transform(X_tr)
 
-
-    #
     # X_te = pca.transform(X_te)
     scaler_te = StandardScaler().fit(X_te)
     X_te = scaler_te.transform(X_te)
@@ -205,7 +204,6 @@ def evaluate_fold(model,
                                    X_tr, Y_tr)
 
     return sd_metrics, si_metrics
-
 
 def evaluate_loso(features_dic):
     all_models = configure_models()
@@ -271,32 +269,72 @@ def convert_2_numpy_per_utterance(dataset_dic):
 
 
 def fusion_loso(list_of_paths):
-
-    try:
-        feat_p = list_of_paths.pop(0)
-        final_data_dic = joblib.load(feat_p)
-    except Exception as e:
-        print "At least one file path is required"
-        raise e
-
-    while list_of_paths:
-        feat_p = list_of_paths.pop(0)
-        temp_dic = joblib.load(feat_p)
+    all_results = {}
+    for nl_feat_p in list_of_paths:
+        final_data_dic = joblib.load(nldrp.config.EMOBASE_PATH)
+        the_path = os.path.join(nldrp.config.NL_FEATURE_PATH, nl_feat_p)
+        temp_dic = joblib.load(the_path)
         try:
             for spkr in temp_dic:
                 for id, el_dic in temp_dic[spkr].items():
                     assert el_dic['y'] == final_data_dic[spkr][id]['y']
                     prev_vec = final_data_dic[spkr][id]['x']
                     this_vec = el_dic['x']
-                    new_vec = np.concatenate([prev_vec, this_vec],
-                                             axis=0)
+                    new_vec = np.concatenate([prev_vec, this_vec], axis=0)
                     final_data_dic[spkr][id]['x'] = new_vec
         except Exception as e:
             print "Failed to update the Fused dictionary"
             raise e
 
-    fused_converted_dic = convert_2_numpy_per_utterance(final_data_dic)
-    return evaluate_loso(fused_converted_dic)
+        fused_converted_dic = convert_2_numpy_per_utterance(final_data_dic)
+        results = evaluate_loso(fused_converted_dic)
+        all_results[nl_feat_p] = results
+        formatted_results = {'configs': []}
+        for k, v in all_results.items():
+            for item, lst in v.items():
+                cnt = len(lst)
+                if item in formatted_results:
+                    formatted_results[item] += lst
+                else:
+                    formatted_results[item] = lst
+            for _ in range(cnt):
+                formatted_results['configs'].append(k)
+
+        with open(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.json'), 'w') as fd:
+            json.dump(formatted_results, fd)
+        df = pd.DataFrame.from_dict(formatted_results)
+        df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.csv'))
+
+    formatted_results = {'configs': []}
+    for k, v in all_results.items():
+        for item, lst in v.items():
+            cnt = len(lst)
+            if item in formatted_results:
+                formatted_results[item] += lst
+            else:
+                formatted_results[item] = lst
+        for _ in range(cnt):
+            formatted_results['configs'].append(k)
+
+    try:
+        with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
+            json.dump(formatted_results, fd)
+        df = pd.DataFrame.from_dict(formatted_results)
+        df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'best_features.csv'))
+        writer = pd.ExcelWriter(os.path.join(nldrp.config.BASE_PATH, 'best_features.xlsx'))
+        df.to_excel(writer, 'Sheet1')
+        writer.save()
+    except Exception as e:
+        print e
+        with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
+            json.dump(formatted_results, fd)
+        df = pd.DataFrame.from_dict(formatted_results)
+        df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'best_features.csv'))
+    finally:
+         with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
+            json.dump(formatted_results, fd)
+
+    return all_results
 
 
 def get_args():
@@ -327,5 +365,4 @@ def get_args():
 
 if __name__ == "__main__":
     """!brief Example of usage"""
-    args = get_args()
-    fusion_loso(args.input_features_paths)
+    fusion_loso(os.listdir(nldrp.config.NL_FEATURE_PATH))
