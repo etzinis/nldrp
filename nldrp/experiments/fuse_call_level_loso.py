@@ -120,7 +120,7 @@ def configure_models():
     models = []
     # models.append(('ELM', ELMWrapper()))
     models.append(('LR', LogisticRegression()))
-    models.append(('LDA', LinearDiscriminantAnalysis()))
+    #models.append(('LDA', LinearDiscriminantAnalysis()))
     models.append(('KNN', KNeighborsClassifier()))
     # models.append(('CART', DecisionTreeClassifier()))
     # models.append(('NB', GaussianNB()))
@@ -225,7 +225,7 @@ def evaluate_loso(features_dic):
         for k, v in result_dic[model_name].items():
             result_dic[model_name][k] = '{} +- {}'.format(
                 round(np.mean(v), 4), round(np.std(v), 4))
-        print result_dic[model_name]
+        pprint.pprint(result_dic[model_name])
 
     for k in result_dic[model_name]:
         all_results[k] = [result_dic[mo][k] for mo in
@@ -233,8 +233,8 @@ def evaluate_loso(features_dic):
     all_results['model'] = [mo for mo in all_models]
 
 
-    df = pd.DataFrame.from_dict(all_results)
-    df.to_clipboard()
+    #df = pd.DataFrame.from_dict(all_results)
+    #df.to_clipboard()
 
 
     # pprint.pprint(result_dic)
