@@ -52,6 +52,26 @@ def generate_speaker_dependent_folds(features_dic):
         yield te_speaker, x_te, te_data['y'], X_tr, Y_tr
 
 
+def generate_speaker_independent_folds(features_dic):
+    all_X = np.concatenate([v['x'] for k, v in features_dic.items()],
+                           axis=0)
+    all_scaler = StandardScaler().fit(all_X)
+
+    for te_speaker, te_data in features_dic.items():
+        x_te = all_scaler.transform(te_data['x'])
+        x_tr_list = []
+        Y_tr = []
+        for tr_speaker, tr_data in features_dic.items():
+            if tr_speaker == te_speaker:
+                continue
+            sp_x = all_scaler.transform(tr_data['x'])
+            x_tr_list.append(sp_x)
+            Y_tr += tr_data['y']
+
+        X_tr = np.concatenate(x_tr_list, axis=0)
+        yield te_speaker, x_te, te_data['y'], X_tr, Y_tr
+
+
 def loso_with_best_models(features_dic):
     """!
     \brief This is the function you should call if you have a
@@ -60,8 +80,14 @@ def loso_with_best_models(features_dic):
     Namely: converted_dic[spkr]['x'] = X_2D
             converted_dic[spkr]['y'] = y_list"""
 
+    for te_speaker, X_te, Y_te, X_tr, Y_tr in \
+            generate_speaker_dependent_folds(features_dic):
+        print X_tr[0, 4:8]
 
-    df
+    for te_speaker, X_te, Y_te, X_tr, Y_tr in \
+            generate_speaker_independent_folds(features_dic):
+        print X_tr[0, 4:8]
+
 
 
 
