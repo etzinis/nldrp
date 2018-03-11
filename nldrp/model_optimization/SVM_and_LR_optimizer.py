@@ -16,24 +16,6 @@ from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 
 
-def compute_metrics(Y_predicted, Y_true):
-    uw_f1 = f1_score(Y_predicted, Y_true, average='macro')
-    w_acc = accuracy_score(Y_predicted, Y_true)
-    cmat = confusion_matrix(Y_true, Y_predicted)
-    with np.errstate(divide='ignore'):
-        uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1) + 1e-6
-                                     )).mean()
-        if np.isnan(uw_acc):
-            uw_acc = 0.
-
-    metrics_l = [('uw_f1', uw_f1),
-                 ('uw_acc', uw_acc),
-                 ('w_acc', w_acc)]
-
-    metric_dic = dict(metrics_l)
-    return metric_dic
-
-
 def generate_speaker_dependent_folds(features_dic):
     for te_speaker, te_data in features_dic.items():
         scaler = StandardScaler().fit(te_data['x'])
@@ -70,6 +52,7 @@ def generate_speaker_independent_folds(features_dic):
 
         X_tr = np.concatenate(x_tr_list, axis=0)
         yield te_speaker, x_te, te_data['y'], X_tr, Y_tr
+
 
 
 def loso_with_best_models(features_dic):
