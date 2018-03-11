@@ -11,7 +11,7 @@ from sklearn.externals import joblib
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
-
+import Optimizer
 
 def generate_speaker_dependent_folds(features_dic,
                                      n_splits=10,
@@ -65,17 +65,27 @@ def loso_with_best_models(features_dic):
     Namely: converted_dic[spkr]['x'] = X_2D
             converted_dic[spkr]['y'] = y_list"""
 
+    svm_opt_obj = Optimizer.ModelOptimizer(
+                  'svm',
+                  generate_speaker_dependent_folds(features_dic),
+                  {'C': [0.1, 1, 5, 10, 100, 1000],
+                   'kernel': ['poly', 'linear', 'rbf', 'sigmoid'],
+                   'gamma': ['auto', 0.001, 0.0001]},
+                  ['w_acc', 'uw_acc'])
 
 
-    for X_te, Y_te, X_tr, Y_tr in \
-            generate_speaker_dependent_folds(features_dic):
-        print X_te.shape
-        print X_tr.shape
+    svm_opt_obj.optimize_model()
 
-    for X_te, Y_te, X_tr, Y_tr in \
-            generate_speaker_independent_folds(features_dic):
-        print X_te.shape
-        print X_tr.shape
+    #
+    # for X_te, Y_te, X_tr, Y_tr in \
+    #         generate_speaker_dependent_folds(features_dic):
+    #     print X_te.shape
+    #     print X_tr.shape
+    #
+    # for X_te, Y_te, X_tr, Y_tr in \
+    #         generate_speaker_independent_folds(features_dic):
+    #     print X_te.shape
+    #     print X_tr.shape
 
 
 
