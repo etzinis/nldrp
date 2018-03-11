@@ -6,27 +6,34 @@
 """
 
 import argparse
+import copy
 from sklearn.externals import joblib
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold
 
 
-def generate_speaker_dependent_folds(features_dic):
-    for te_speaker, te_data in features_dic.items():
-        scaler = StandardScaler().fit(te_data['x'])
-        x_te = scaler.transform(te_data['x'])
-        x_tr_list = []
-        Y_tr = []
-        for tr_speaker, tr_data in features_dic.items():
-            if tr_speaker == te_speaker:
-                continue
-            scaler = StandardScaler().fit(tr_data['x'])
-            sp_x = scaler.transform(tr_data['x'])
-            x_tr_list.append(sp_x)
-            Y_tr += tr_data['y']
+def generate_speaker_dependent_folds(features_dic,
+                                     n_splits=10,
+                                     random_seed=7):
+    norm_per_sp_dic = copy.deepcopy(features_dic)
+    for sp, data in norm_per_sp_dic.items():
+        this_scaler = StandardScaler().fit(data['x'])
+        norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
 
-        X_tr = np.concatenate(x_tr_list, axis=0)
-        yield te_speaker, x_te, te_data['y'], X_tr, Y_tr
+    xy_l = [v for (sp, v) in norm_per_sp_dic.items()]
+    x_all = np.concatenate([v['x'] for v in xy_l])
+    y_all = [utt_label for speaker_labels in [v['y'] for v in xy_l]
+             for utt_label in speaker_labels]
+
+    skf = StratifiedKFold(n_splits=n_splits,
+                          shuffle=True,
+                          random_state=random_seed)
+    for tr_ind, te_ind in skf.split(x_all, y_all):
+        yield (x_all[te_ind],
+               [y_all[i] for i in te_ind],
+               x_all[tr_ind],
+               [y_all[i] for i in tr_ind])
 
 
 def generate_speaker_independent_folds(features_dic):
@@ -46,7 +53,7 @@ def generate_speaker_independent_folds(features_dic):
             Y_tr += tr_data['y']
 
         X_tr = np.concatenate(x_tr_list, axis=0)
-        yield te_speaker, x_te, te_data['y'], X_tr, Y_tr
+        yield x_te, te_data['y'], X_tr, Y_tr
 
 
 
@@ -58,13 +65,17 @@ def loso_with_best_models(features_dic):
     Namely: converted_dic[spkr]['x'] = X_2D
             converted_dic[spkr]['y'] = y_list"""
 
-    for te_speaker, X_te, Y_te, X_tr, Y_tr in \
-            generate_speaker_dependent_folds(features_dic):
-        print X_tr[0, 4:8]
 
-    for te_speaker, X_te, Y_te, X_tr, Y_tr in \
+
+    for X_te, Y_te, X_tr, Y_tr in \
+            generate_speaker_dependent_folds(features_dic):
+        print X_te.shape
+        print X_tr.shape
+
+    for X_te, Y_te, X_tr, Y_tr in \
             generate_speaker_independent_folds(features_dic):
-        print X_tr[0, 4:8]
+        print X_te.shape
+        print X_tr.shape
 
 
 
