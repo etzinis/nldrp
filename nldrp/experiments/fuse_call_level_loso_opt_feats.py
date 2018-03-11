@@ -416,16 +416,7 @@ def fusion_loso(list_of_paths):
             json.dump(formatted_results, fd)
         df = pd.DataFrame.from_dict(formatted_results)
         df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'best_features.csv'))
-        writer = pd.ExcelWriter(os.path.join(nldrp.config.BASE_PATH, 'best_features.xlsx'))
-        df.to_excel(writer, 'Sheet1')
-        writer.save()
     except Exception as e:
-        print e
-        with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
-            json.dump(formatted_results, fd)
-        df = pd.DataFrame.from_dict(formatted_results)
-        df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'best_features.csv'))
-    finally:
          with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
             json.dump(formatted_results, fd)
 
