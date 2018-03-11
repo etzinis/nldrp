@@ -28,7 +28,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import Normalizer
 
-
+from sklearn.model_selection import StratifiedKFold
 from sklearn.externals import joblib
 import tabulate
 # import elm
@@ -39,6 +39,7 @@ import numpy as np
 import pprint
 import json
 import os
+import copy
 import sys
 
 nldrp_dir = os.path.join(
@@ -48,6 +49,53 @@ sys.path.insert(0, nldrp_dir)
 import nldrp.feature_extraction.pipeline.utterance_feature_loader as \
     feature_loader
 import nldrp.config
+
+
+def generate_speaker_independent_folds(features_dic):
+    all_X = np.concatenate([v['x'] for k, v in features_dic.items()],
+                           axis=0)
+    all_scaler = StandardScaler().fit(all_X)
+
+    for te_speaker, te_data in features_dic.items():
+        if te_speaker == 'KL':
+            continue
+        x_te = all_scaler.transform(te_data['x'])
+        x_tr_list = []
+        Y_tr = []
+        for tr_speaker, tr_data in features_dic.items():
+            if tr_speaker == te_speaker or tr_speaker == 'KL':
+                continue
+            sp_x = all_scaler.transform(tr_data['x'])
+            x_tr_list.append(sp_x)
+            Y_tr += tr_data['y']
+
+        X_tr = np.concatenate(x_tr_list, axis=0)
+        yield x_te, te_data['y'], X_tr, Y_tr
+
+
+def generate_speaker_dependent_folds(features_dic,
+                                     n_splits=3,
+                                     random_seed=7):
+    norm_per_sp_dic = copy.deepcopy(features_dic)
+    if 'KL' in norm_per_sp_dic:
+        del norm_per_sp_dic['KL']
+    for sp, data in norm_per_sp_dic.items():
+        this_scaler = StandardScaler().fit(data['x'])
+        norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
+
+    xy_l = [v for (sp, v) in norm_per_sp_dic.items()]
+    x_all = np.concatenate([v['x'] for v in xy_l])
+    y_all = [utt_label for speaker_labels in [v['y'] for v in xy_l]
+             for utt_label in speaker_labels]
+
+    skf = StratifiedKFold(n_splits=n_splits,
+                          shuffle=True,
+                          random_state=random_seed)
+    for tr_ind, te_ind in skf.split(x_all, y_all):
+        yield (x_all[te_ind],
+               [y_all[i] for i in te_ind],
+               x_all[tr_ind],
+               [y_all[i] for i in tr_ind])
 
 
 def generate_speaker_folds(features_dic):
@@ -149,11 +197,8 @@ def speaker_dependent(model,
     scaler = StandardScaler().fit(X_tr[:120, :])
     X_tr1[:120, :] = scaler.transform(X_tr[:120, :])
 
-    scaler = StandardScaler().fit(X_tr[120:240, :])
-    X_tr1[120:240, :] = scaler.transform(X_tr[120:240, :])
-
-    scaler = StandardScaler().fit(X_tr[240:, :])
-    X_tr1[240:, :] = scaler.transform(X_tr[240:, :])
+    scaler = StandardScaler().fit(X_tr[120:, :])
+    X_tr1[120:, :] = scaler.transform(X_tr[120:, :])
 
     #scaler = StandardScaler().fit(X_tr)
     #X_tr1 = scaler.transform(X_tr)
@@ -189,8 +234,7 @@ def speaker_independent(model,
 def evaluate_fold(model,
                   X_te, Y_te,
                   X_tr, Y_tr):
-    all_X = np.concatenate([X_tr, X_te], axis=0)
-    scaler = StandardScaler().fit(all_X)
+    scaler = StandardScaler().fit(X_tr)
     X_tr = scaler.transform(X_tr)
     X_te = scaler.transform(X_te)
 
@@ -200,8 +244,8 @@ def evaluate_fold(model,
 
 
     si_metrics = speaker_independent(model,
-                                   X_te, Y_te,
-                                   X_tr, Y_tr)
+                                     X_te, Y_te,
+                                     X_tr, Y_tr)
 
     return sd_metrics, si_metrics
 
@@ -212,26 +256,36 @@ def evaluate_loso(features_dic):
 
     for model_name, model in all_models.items():
         result_dic[model_name] = {}
-        experiments = ['dependent', 'independent']
 
-        for te_speaker, X_te, Y_te, X_tr, Y_tr in generate_speaker_folds(
+        for X_te, Y_te, X_tr, Y_tr in generate_speaker_independent_folds(
                 features_dic):
-
+            exp = 'independent'
             m = {}
-            m['dependent'], m['independent'] = evaluate_fold(
-                                                    model, X_te,
-                                                    Y_te, X_tr, Y_tr)
+            m[exp] = speaker_independent(
+                model, X_te,
+                Y_te, X_tr, Y_tr)
 
-            if result_dic[model_name]:
-                for exp in experiments:
-                    for k, v in m[exp].items():
-                        col_name = exp + '_' + k
-                        result_dic[model_name][col_name].append(v)
-            else:
-                for exp in experiments:
-                    for k, v in m[exp].items():
-                        col_name = exp + '_' + k
-                        result_dic[model_name][col_name]=[v]
+            for k, v in m[exp].items():
+                col_name = exp + '_' + k
+                if result_dic[model_name] and col_name in result_dic[model_name]:
+                     result_dic[model_name][col_name].append(v)
+                else:
+                    result_dic[model_name][col_name]=[v]
+
+        for X_te, Y_te, X_tr, Y_tr in generate_speaker_dependent_folds(
+                features_dic):
+            exp = 'dependent'
+            m = {}
+            m[exp] = speaker_dependent(
+                model, X_te,
+                Y_te, X_tr, Y_tr)
+
+            for k, v in m[exp].items():
+                col_name = exp + '_' + k
+                if result_dic[model_name] and col_name in result_dic[model_name]:
+                     result_dic[model_name][col_name].append(v)
+                else:
+                    result_dic[model_name][col_name]=[v]
 
         print model_name
         for k, v in result_dic[model_name].items():
@@ -241,7 +295,7 @@ def evaluate_loso(features_dic):
 
     for k in result_dic[model_name]:
         all_results[k] = [result_dic[mo][k] for mo in
-                                  all_models]
+                          all_models]
     all_results['model'] = [mo for mo in all_models]
 
     #df = pd.DataFrame.from_dict(all_results)
@@ -267,13 +321,21 @@ def convert_2_numpy_per_utterance(dataset_dic):
 
     return converted_dic
 
+def nl_feature_load(list_of_paths):
+    nl_features = {}
+    for nl_feat_p in list_of_paths:
+        the_path = os.path.join(nldrp.config.NL_FEATURE_PATH, nl_feat_p)
+        temp_dic = joblib.load(the_path)
+        nl_features[nl_feat_p] = temp_dic
+    return nl_features
+
 
 def fusion_loso(list_of_paths):
     all_results = {}
-    for nl_feat_p in list_of_paths:
-        final_data_dic = joblib.load(nldrp.config.EMOBASE_PATH)
-        the_path = os.path.join(nldrp.config.NL_FEATURE_PATH, nl_feat_p)
-        temp_dic = joblib.load(the_path)
+    emo_data_dic = joblib.load(nldrp.config.EMOBASE_PATH)
+    nl_feature_dic = nl_feature_load(list_of_paths)
+    for nl_feat_p, temp_dic in nl_feature_dic.iteritems():
+        final_data_dic = copy.deepcopy(emo_data_dic)
         try:
             for spkr in temp_dic:
                 for id, el_dic in temp_dic[spkr].items():
