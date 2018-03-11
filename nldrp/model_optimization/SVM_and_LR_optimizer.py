@@ -17,7 +17,6 @@ def generate_speaker_dependent_folds(features_dic,
                                      n_splits=5,
                                      random_seed=7):
     norm_per_sp_dic = copy.deepcopy(features_dic)
-    del norm_per_sp_dic['KL']
     for sp, data in norm_per_sp_dic.items():
         this_scaler = StandardScaler().fit(data['x'])
         norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
@@ -43,13 +42,11 @@ def generate_speaker_independent_folds(features_dic):
     all_scaler = StandardScaler().fit(all_X)
 
     for te_speaker, te_data in features_dic.items():
-        if te_speaker == 'KL':
-            continue
         x_te = all_scaler.transform(te_data['x'])
         x_tr_list = []
         Y_tr = []
         for tr_speaker, tr_data in features_dic.items():
-            if tr_speaker == te_speaker or tr_speaker == 'KL':
+            if tr_speaker == te_speaker:
                 continue
             sp_x = all_scaler.transform(tr_data['x'])
             x_tr_list.append(sp_x)
