@@ -36,6 +36,19 @@ def compute_metrics(Y_predicted, Y_true):
     return metric_dic
 
 
+def dummy_generate_SVMs_and_LRs():
+    svm_params = [('svm', c) for c in [0.1, 0.3, 0.5, 1, 3, 5, 7, 8,
+                                       10]]
+    lr_params = [('lr', c) for c in [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10]]
+    all_params = svm_params + lr_params
+
+    for m_name, c in all_params:
+        if m_name == 'svm':
+            yield SVC(C=c)
+        else:
+            yield LogisticRegression(C=c)
+
+
 class ModelOptimizer(object):
     def __init__(self,
                  model_name,
@@ -75,8 +88,7 @@ class ModelOptimizer(object):
     def configure_model(model_name, params):
         if model_name == 'svm':
             model = SVC(C=params.get('C', 1),
-                        kernel=params.get('kernel', 'rbf'),
-                        gamma=params.get('gamma', 'auto'))
+                        kernel=params.get('kernel', 'rbf'))
         elif model_name == 'lr':
             model = LogisticRegression(C=params.get('C', 1),
                                        penalty=params.get('penalty',
@@ -94,13 +106,37 @@ class ModelOptimizer(object):
         keys, values = zip(*self.param_grid.items())
         experiments = [dict(zip(keys, v)) for v in
                        itertools.product(*values)]
-
+        fold_gens = itertools.tee(self.folds_gen, len(experiments))
         for i, v in enumerate(experiments):
-            yield v
+            yield v, fold_gens[i]
+
+    def evaluate_model(self, model, folds_gen):
+        model_metrics = {}
+        for x_te, y_te, x_tr, y_tr in folds_gen:
+            model.fit(x_tr, y_tr)
+            y_pred = model.predict(x_te)
+            this_f_metrics = compute_metrics(y_pred, y_te)
+            for m in this_f_metrics:
+                if m not in model_metrics:
+                    model_metrics[m] = [this_f_metrics[m]]
+                else:
+                    model_metrics[m].append(this_f_metrics[m])
+
+        for m in model_metrics:
+            model_metrics[m] = np.mean(model_metrics[m])
+        return model_metrics
+
 
     def optimize_model(self):
         grid_space = self.generate_grid_space()
-        for config_params in grid_space:
+        for config_params, fold_gen in grid_space:
             model = self.configure_model(self.model_name,
                                          config_params)
-            print model
+            metrics = self.evaluate_model(model, fold_gen)
+            print config_params
+            print metrics
+
+
+if __name__ == "__main__":
+    for model in dummy_generate_SVMs_and_LRs():
+        print model
