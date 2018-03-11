@@ -264,7 +264,7 @@ def evaluate_fold(model,
     return sd_metrics, si_metrics
 
 def evaluate_loso(features_dic):
-    all_models = dummy_generate_SVMs_and_LRs() #configure_models()
+    all_models = list(dummy_generate_SVMs_and_LRs()) #configure_models()
     result_dic = {}
     all_results = {}
 
@@ -308,10 +308,12 @@ def evaluate_loso(features_dic):
                 round(np.mean(v), 4), round(np.std(v), 4))
         pprint.pprint(result_dic[model_name])
 
-        for k in result_dic[model_name]:
-            all_results[k] = [result_dic[mo][k] for mo in
-                              all_models]
-    all_results['model'] = [mo for mo in all_models]
+    for k in result_dic[model_name]:
+        for mod, _ in all_models:
+            if mod in result_dic:
+                all_results[k] = result_dic[mod][k]
+
+    all_results['model'] = [mo[0] for mo in all_models]
 
     #df = pd.DataFrame.from_dict(all_results)
     #df.to_clipboard()
@@ -380,9 +382,9 @@ def fusion_loso(list_of_paths):
             for item, lst in v.items():
                 cnt = len(lst)
                 if item in formatted_results:
-                    formatted_results[item] += lst
+                    formatted_results[item].append(lst)
                 else:
-                    formatted_results[item] = lst
+                    formatted_results[item] = [lst]
             for _ in range(cnt):
                 formatted_results['configs'].append(k)
 
@@ -404,9 +406,9 @@ def fusion_loso(list_of_paths):
         for item, lst in v.items():
             cnt = len(lst)
             if item in formatted_results:
-                formatted_results[item] += lst
+                formatted_results[item].append(lst)
             else:
-                formatted_results[item] = lst
+                formatted_results[item] = [lst]
         for _ in range(cnt):
             formatted_results['configs'].append(k)
 
