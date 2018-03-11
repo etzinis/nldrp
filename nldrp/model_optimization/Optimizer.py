@@ -84,6 +84,7 @@ class ModelOptimizer(object):
                     m, valid_metrics)))
         self.opt_metrics = metrics_to_optimize
 
+
     @staticmethod
     def configure_model(model_name, params):
         if model_name == 'svm':
@@ -102,6 +103,7 @@ class ModelOptimizer(object):
 
         return model
 
+
     def generate_grid_space(self):
         keys, values = zip(*self.param_grid.items())
         experiments = [dict(zip(keys, v)) for v in
@@ -109,6 +111,7 @@ class ModelOptimizer(object):
         fold_gens = itertools.tee(self.folds_gen, len(experiments))
         for i, v in enumerate(experiments):
             yield v, fold_gens[i]
+
 
     def evaluate_model(self, model, folds_gen):
         model_metrics = {}
@@ -128,14 +131,27 @@ class ModelOptimizer(object):
 
 
     def optimize_model(self):
+        best_conf = {}
+
         grid_space = self.generate_grid_space()
         for config_params, fold_gen in grid_space:
             model = self.configure_model(self.model_name,
                                          config_params)
             metrics = self.evaluate_model(model, fold_gen)
-            print config_params
-            print metrics
 
+            for me in self.opt_metrics:
+                if me not in best_conf:
+                    best_conf[me] = {}
+                    best_conf[me]['score'] = metrics
+                    best_conf[me]['config'] = [self.model_name,
+                                               config_params]
+                else:
+                    if best_conf[me]['score'][me] < metrics[me]:
+                        best_conf[me]['score'] = metrics
+                        best_conf[me]['config'] = [self.model_name,
+                                                   config_params]
+
+        return best_conf
 
 if __name__ == "__main__":
     for model in dummy_generate_SVMs_and_LRs():
