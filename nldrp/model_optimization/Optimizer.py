@@ -44,13 +44,13 @@ class ModelOptimizer(object):
                  metrics_to_optimize):
 
         valid_models = ['svm', 'lr']
-        if model_name.lower() in valid_models:
+        if model_name in valid_models:
             self.model_name = model_name
         else:
             raise NotImplementedError(('Model: <{}> is not yet '
                                        'supported. Please try one of '
                                        'the following: {}'.format(
-                                        model_name, valid_models)))
+                model_name, valid_models)))
 
         self.param_grid = params_grid
         self.folds_gen = folds_generator
@@ -62,21 +62,33 @@ class ModelOptimizer(object):
                                                       'defined in a ' \
                                                       'list'
         for m in metrics_to_optimize:
-            if m.lower() not in valid_metrics:
+            if m not in valid_metrics:
                 raise NotImplementedError(('Metric to optimize: <{}> '
                                            'is not yet '
                                            'supported. Please try '
                                            'one of '
                                            'the following: {}'.format(
-                                            m, valid_metrics)))
+                    m, valid_metrics)))
         self.opt_metrics = metrics_to_optimize
 
-
     @staticmethod
-    def configure_model(model_name):
-        if model_name == 'SVM':
-            return
+    def configure_model(model_name, params):
+        if model_name == 'svm':
+            model = SVC(C=params.get('C', 1),
+                        kernel=params.get('kernel', 'rbf'),
+                        gamma=params.get('gamma', 'auto'))
+        elif model_name == 'lr':
+            model = LogisticRegression(C=params.get('C', 1),
+                                       penalty=params.get('penalty',
+                                                          'l2'))
+        else:
+            valid_models = ['svm', 'lr']
+            raise NotImplementedError(('Model: <{}> is not yet '
+                                       'supported. Please try one of '
+                                       'the following: {}'.format(
+                model_name, valid_models)))
 
+        return model
 
     def generate_grid_space(self):
         keys, values = zip(*self.param_grid.items())
@@ -86,15 +98,9 @@ class ModelOptimizer(object):
         for i, v in enumerate(experiments):
             yield v
 
-
     def optimize_model(self):
         grid_space = self.generate_grid_space()
-        for config in grid_space:
-            print config
-
-
-
-
-
-
-
+        for config_params in grid_space:
+            model = self.configure_model(self.model_name,
+                                         config_params)
+            print model
