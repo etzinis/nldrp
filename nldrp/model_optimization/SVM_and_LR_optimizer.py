@@ -14,9 +14,10 @@ from sklearn.model_selection import StratifiedKFold
 import Optimizer
 
 def generate_speaker_dependent_folds(features_dic,
-                                     n_splits=10,
+                                     n_splits=5,
                                      random_seed=7):
     norm_per_sp_dic = copy.deepcopy(features_dic)
+    del norm_per_sp_dic['KL']
     for sp, data in norm_per_sp_dic.items():
         this_scaler = StandardScaler().fit(data['x'])
         norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
@@ -42,11 +43,13 @@ def generate_speaker_independent_folds(features_dic):
     all_scaler = StandardScaler().fit(all_X)
 
     for te_speaker, te_data in features_dic.items():
+        if te_speaker == 'KL':
+            continue
         x_te = all_scaler.transform(te_data['x'])
         x_tr_list = []
         Y_tr = []
         for tr_speaker, tr_data in features_dic.items():
-            if tr_speaker == te_speaker:
+            if tr_speaker == te_speaker or tr_speaker == 'KL':
                 continue
             sp_x = all_scaler.transform(tr_data['x'])
             x_tr_list.append(sp_x)
@@ -65,36 +68,57 @@ def loso_with_best_models(features_dic):
     Namely: converted_dic[spkr]['x'] = X_2D
             converted_dic[spkr]['y'] = y_list"""
 
+    best_models = {}
+
     svm_opt_obj = Optimizer.ModelOptimizer(
                   'svm',
                   generate_speaker_dependent_folds(features_dic),
-                  {'C': [0.1, 1, 5, 10, 100, 1000],
-                   'kernel': ['poly', 'linear', 'rbf', 'sigmoid'],
-                   'gamma': ['auto', 0.001, 0.0001]},
+                  {'C': [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10],
+                   'kernel': ['rbf']},
                   ['w_acc', 'uw_acc'])
 
+    best_models["SVM Dependent"] = svm_opt_obj.optimize_model()
 
-    svm_opt_obj.optimize_model()
+    svm_opt_obj = Optimizer.ModelOptimizer(
+        'svm',
+        generate_speaker_independent_folds(features_dic),
+        {'C': [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10],
+         'kernel': ['rbf']},
+        ['w_acc', 'uw_acc'])
 
-    #
-    # for X_te, Y_te, X_tr, Y_tr in \
-    #         generate_speaker_dependent_folds(features_dic):
-    #     print X_te.shape
-    #     print X_tr.shape
-    #
-    # for X_te, Y_te, X_tr, Y_tr in \
-    #         generate_speaker_independent_folds(features_dic):
-    #     print X_te.shape
-    #     print X_tr.shape
+    best_models["SVM Independent"] = svm_opt_obj.optimize_model()
 
+    lr_opt_obj = Optimizer.ModelOptimizer(
+        'lr',
+        generate_speaker_dependent_folds(features_dic),
+        {'C': [0.01, 0.05, 0.1, 0.3, 0.5, 1, 3],
+         'penalty': ['l2']},
+        ['w_acc', 'uw_acc'])
 
+    best_models["LR Dependent"] = lr_opt_obj.optimize_model()
+
+    lr_opt_obj = Optimizer.ModelOptimizer(
+        'lr',
+        generate_speaker_independent_folds(features_dic),
+        {'C': [0.01, 0.05, 0.1, 0.3, 0.5, 1, 3],
+         'penalty': ['l2']},
+        ['w_acc', 'uw_acc'])
+
+    best_models["LR Independent"] = lr_opt_obj.optimize_model()
+
+    return best_models
 
 
 def command_line_optimizer(list_of_paths):
 
     speakers_dic = fuse_all_configurations(list_of_paths)
 
-    loso_with_best_models(speakers_dic)
+    best_models = loso_with_best_models(speakers_dic)
+
+    print "Optimized LR and SVM for both Speaker Dependent and " \
+          "Independent Experimentations"
+    from pprint import pprint
+    pprint(best_models)
 
 
 def convert_2_numpy_per_utterance(dataset_dic):
