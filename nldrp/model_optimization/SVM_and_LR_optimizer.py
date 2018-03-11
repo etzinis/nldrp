@@ -8,11 +8,6 @@
 import argparse
 from sklearn.externals import joblib
 import numpy as np
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 
 
