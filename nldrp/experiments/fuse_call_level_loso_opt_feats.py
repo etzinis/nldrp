@@ -33,6 +33,7 @@ from sklearn.externals import joblib
 import tabulate
 # import elm
 
+import gc
 import pandas as pd
 import argparse
 import numpy as np
@@ -184,6 +185,19 @@ def configure_models():
     return dict(models)
 
 
+def dummy_generate_SVMs_and_LRs():
+    svm_params = [('svm', c) for c in [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10]]
+    lr_params = [('lr', c) for c in [1e-3, 0.01, 0.05, 0.1, 0.3, 0.5, 1, 3]]
+    all_params = svm_params + lr_params
+
+    for m_name, c in all_params:
+        desc = '{}_{}'.format(m_name, str(c))
+        if m_name == 'svm':
+            yield desc, SVC(C=c)
+        else:
+            yield desc, LogisticRegression(C=c)
+
+
 def speaker_dependent(model,
                       X_te, Y_te,
                       X_tr, Y_tr):
@@ -250,11 +264,12 @@ def evaluate_fold(model,
     return sd_metrics, si_metrics
 
 def evaluate_loso(features_dic):
-    all_models = configure_models()
+    all_models = dummy_generate_SVMs_and_LRs() #configure_models()
     result_dic = {}
     all_results = {}
 
-    for model_name, model in all_models.items():
+    #for model_name, model in all_models.items():
+    for model_name, model in all_models:
         result_dic[model_name] = {}
 
         for X_te, Y_te, X_tr, Y_tr in generate_speaker_independent_folds(
@@ -293,9 +308,9 @@ def evaluate_loso(features_dic):
                 round(np.mean(v), 4), round(np.std(v), 4))
         pprint.pprint(result_dic[model_name])
 
-    for k in result_dic[model_name]:
-        all_results[k] = [result_dic[mo][k] for mo in
-                          all_models]
+        for k in result_dic[model_name]:
+            all_results[k] = [result_dic[mo][k] for mo in
+                              all_models]
     all_results['model'] = [mo for mo in all_models]
 
     #df = pd.DataFrame.from_dict(all_results)
@@ -334,8 +349,11 @@ def fusion_loso(list_of_paths):
     all_results = {}
     emo_data_dic = joblib.load(nldrp.config.EMOBASE_PATH)
     nl_feature_dic = nl_feature_load(list_of_paths)
-    for nl_feat_p, temp_dic in nl_feature_dic.iteritems():
+    for nl_feat_p, temp_dic in nl_feature_dic.items():
         final_data_dic = copy.deepcopy(emo_data_dic)
+
+        print "COPY"
+
         try:
             for spkr in temp_dic:
                 for id, el_dic in temp_dic[spkr].items():
@@ -349,7 +367,13 @@ def fusion_loso(list_of_paths):
             raise e
 
         fused_converted_dic = convert_2_numpy_per_utterance(final_data_dic)
+
+        print "FUSE"
+
         results = evaluate_loso(fused_converted_dic)
+
+        print "EVALUATE"
+
         all_results[nl_feat_p] = results
         formatted_results = {'configs': []}
         for k, v in all_results.items():
@@ -362,10 +386,18 @@ def fusion_loso(list_of_paths):
             for _ in range(cnt):
                 formatted_results['configs'].append(k)
 
+        print "AGGREGATE RESULTS"
+
         with open(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.json'), 'w') as fd:
             json.dump(formatted_results, fd)
-        df = pd.DataFrame.from_dict(formatted_results)
-        df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.csv'))
+
+        print "JSON DUMP"
+
+        gc.collect()
+        #df = pd.DataFrame.from_dict(formatted_results)
+        #df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.csv'))
+
+    print "FINISHED"
 
     formatted_results = {'configs': []}
     for k, v in all_results.items():
@@ -378,6 +410,7 @@ def fusion_loso(list_of_paths):
         for _ in range(cnt):
             formatted_results['configs'].append(k)
 
+    print "FORMATTED RESULTS"
     try:
         with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
             json.dump(formatted_results, fd)
