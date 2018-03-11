@@ -15,7 +15,7 @@ from sklearn.metrics import f1_score
 
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-
+import itertools
 
 
 def compute_metrics(Y_predicted, Y_true):
@@ -43,8 +43,8 @@ class ModelOptimizer(object):
                  params_grid,
                  metrics_to_optimize):
 
-        valid_models = ['SVM', 'LR']
-        if model_name in valid_models:
+        valid_models = ['svm', 'lr']
+        if model_name.lower() in valid_models:
             self.model_name = model_name
         else:
             raise NotImplementedError(('Model: <{}> is not yet '
@@ -62,7 +62,7 @@ class ModelOptimizer(object):
                                                       'defined in a ' \
                                                       'list'
         for m in metrics_to_optimize:
-            if m not in valid_metrics:
+            if m.lower() not in valid_metrics:
                 raise NotImplementedError(('Metric to optimize: <{}> '
                                            'is not yet '
                                            'supported. Please try '
@@ -76,6 +76,21 @@ class ModelOptimizer(object):
     def configure_model(model_name):
         if model_name == 'SVM':
             return
+
+
+    def generate_grid_space(self):
+        keys, values = zip(*self.param_grid.items())
+        experiments = [dict(zip(keys, v)) for v in
+                       itertools.product(*values)]
+
+        for i, v in enumerate(experiments):
+            yield v
+
+
+    def optimize_model(self):
+        grid_space = self.generate_grid_space()
+        for config in grid_space:
+            print config
 
 
 
