@@ -59,13 +59,39 @@ def dummy_RPS(signal,tau,ed):
     return phase_space_signal
 
 
-def ami_RPS(signal, ed=3):
-    """!
-    \brief This uses the Average mutual information in order to find
-    the optimal time lag and possibly the False Nearest Neighbors for
-    determining the optimal embedding dimension."""
+def ami_on_rolled(signal, tau, n_bins):
+    signal1 = np.copy(signal)
+    rolled_signal = np.roll(signal1, -tau)
+    clp_sig = signal1[:-tau]
+    clp_rol_sig = rolled_signal[:-tau]
+    h2d, _, _ = np.histogram2d(clp_sig, clp_rol_sig, bins=n_bins)
+    pxy = h2d / float(np.sum(h2d))
+    px = np.sum(pxy, axis=1)
+    py = np.sum(pxy, axis=0)
+    px_py = px[:, None] * py[None, :]
+    nzs = pxy > 0
+    ami = np.sum(pxy[nzs] * np.log(pxy[nzs] / (px_py[nzs] + 1e-6) + 1e-6))
+    return ami
 
-    raise NotImplementedError("AMI RPS is not implemented yet!")
+
+def ami_tau_estimation(signal, max_tau=100, n_bins=32):
+    taus = np.arange(4, max_tau)
+    ami_acc = [(ami_on_rolled(signal, x, n_bins), x) for x in np.arange(1, 4)]
+
+    if ami_acc[1][0] < ami_acc[0][0] and ami_acc[1][0] < ami_acc[2][0]:
+        return ami_acc[1][1]
+    first_ami = ami_acc
+    for tau in taus:
+        new_ami = ami_on_rolled(signal, tau, n_bins)
+        ami_acc[0] = ami_acc[1]
+        ami_acc[1] = ami_acc[2]
+        ami_acc[2] = (new_ami, tau)
+        if ami_acc[1][0] < ami_acc[0][0] and ami_acc[1][0] < ami_acc[2][0]:
+            return ami_acc[1][1]
+
+    if first_ami[0][0] < ami_acc[2][0]:
+        return first_ami[0][1]
+    return ami_acc[2][1]
 
 
 def cython_RPS(signal, tau, ed):
@@ -75,6 +101,15 @@ def cython_RPS(signal, tau, ed):
 
     return unicorn_rp.RecurrencePlot.embed_time_series(signal,
                                                        ed, tau)
+
+
+def ami_RPS(signal, max_tau, ed=3):
+    """!
+    \brief This uses the Average mutual information in order to find
+    the optimal time lag and possibly the False Nearest Neighbors for
+    determining the optimal embedding dimension."""
+    tau = ami_tau_estimation(signal, max_tau=max_tau, n_bins=32)
+    return cython_RPS(signal, tau, ed)
 
 
 def test_performance(iterations=1000):
@@ -93,9 +128,12 @@ def test_performance(iterations=1000):
     print '='*5 + ' RPS Performance Testing ' + '='*5
     
     for fs in fs_list:
-        total_time = {'Numpy Roll':0.0,
-                      'Python Roll':0.0,
-                      'Unicorn':0.0}
+        total_time = {
+            'Numpy Roll':0.0,
+            'Python Roll':0.0,
+            'Unicorn':0.0,
+            'AMI': 0.0
+        }
         win_samples = int(win_secs * fs) 
         print '\n\n'+'~'*5 + ' Testing for Fs={} Samples={} '.format(
                     fs, win_samples)+'~'*5
@@ -118,6 +156,11 @@ def test_performance(iterations=1000):
             now = time.time()
             total_time['Unicorn'] += now - before
 
+            before = time.time()
+            ami_rps = ami_RPS(x, 100, ed)
+            now = time.time()
+            total_time['AMI'] += now - before
+
             # check the validity of the results 
             assert (abs(est_rps_n-est_rps_p)< 0.00001).all(), (
                 'All implementations '
@@ -127,8 +170,6 @@ def test_performance(iterations=1000):
             assert (abs(est_rps_n-uni_rps)< 0.00001).all(), (
                 'All implementations '
                 'of RPS should have the same result')
-
-
 
         for k,v in total_time.items():
             print (">Total Time: {} for {} frames, Method: "
