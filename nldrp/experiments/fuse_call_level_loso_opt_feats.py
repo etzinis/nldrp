@@ -75,7 +75,7 @@ def generate_speaker_independent_folds(features_dic):
 
 
 def generate_speaker_dependent_folds(features_dic,
-                                     n_splits=3,
+                                     n_splits=5,
                                      random_seed=7):
     norm_per_sp_dic = copy.deepcopy(features_dic)
     if 'KL' in norm_per_sp_dic:
@@ -286,7 +286,6 @@ def evaluate_loso(features_dic):
                      result_dic[model_name][col_name].append(v)
                 else:
                     result_dic[model_name][col_name]=[v]
-
         for X_te, Y_te, X_tr, Y_tr in generate_speaker_dependent_folds(
                 features_dic):
             exp = 'dependent'
@@ -304,16 +303,19 @@ def evaluate_loso(features_dic):
 
         print model_name
         for k, v in result_dic[model_name].items():
-            result_dic[model_name][k] = '{} +- {}'.format(
-                round(np.mean(v), 4), round(np.std(v), 4))
+            result_dic[model_name][k] = round(np.mean(v), 4)
         pprint.pprint(result_dic[model_name])
 
+    all_results['model'] = []
     for k in result_dic[model_name]:
         for mod, _ in all_models:
+            if mod not in all_results['model']:
+                all_results['model'].append(mod)
             if mod in result_dic:
-                all_results[k] = result_dic[mod][k]
-
-    all_results['model'] = [mo[0] for mo in all_models]
+                if k in all_results:
+                    all_results[k].append(result_dic[mod][k])
+                else:
+                    all_results[k] = [result_dic[mod][k]]
 
     #df = pd.DataFrame.from_dict(all_results)
     #df.to_clipboard()
@@ -344,6 +346,7 @@ def nl_feature_load(list_of_paths):
         the_path = os.path.join(nldrp.config.NL_FEATURE_PATH, nl_feat_p)
         temp_dic = joblib.load(the_path)
         nl_features[nl_feat_p] = temp_dic
+    print "Read {} features from {}".format(len(nl_features.items()), len(list_of_paths))
     return nl_features
 
 
@@ -352,10 +355,9 @@ def fusion_loso(list_of_paths):
     emo_data_dic = joblib.load(nldrp.config.EMOBASE_PATH)
     nl_feature_dic = nl_feature_load(list_of_paths)
     for nl_feat_p, temp_dic in nl_feature_dic.items():
+        print nl_feat_p
         final_data_dic = copy.deepcopy(emo_data_dic)
-
         print "COPY"
-
         try:
             for spkr in temp_dic:
                 for id, el_dic in temp_dic[spkr].items():
@@ -373,7 +375,6 @@ def fusion_loso(list_of_paths):
         print "FUSE"
 
         results = evaluate_loso(fused_converted_dic)
-
         print "EVALUATE"
 
         all_results[nl_feat_p] = results
@@ -382,9 +383,9 @@ def fusion_loso(list_of_paths):
             for item, lst in v.items():
                 cnt = len(lst)
                 if item in formatted_results:
-                    formatted_results[item].append(lst)
+                    formatted_results[item] += lst
                 else:
-                    formatted_results[item] = [lst]
+                    formatted_results[item] = lst
             for _ in range(cnt):
                 formatted_results['configs'].append(k)
 
