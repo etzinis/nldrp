@@ -17,6 +17,7 @@ def generate_speaker_dependent_folds(features_dic,
                                      n_splits=5,
                                      random_seed=7):
     norm_per_sp_dic = copy.deepcopy(features_dic)
+    # del norm_per_sp_dic['KL']
     for sp, data in norm_per_sp_dic.items():
         this_scaler = StandardScaler().fit(data['x'])
         norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
@@ -37,22 +38,24 @@ def generate_speaker_dependent_folds(features_dic,
 
 
 def generate_speaker_independent_folds(features_dic):
-    all_X = np.concatenate([v['x'] for k, v in features_dic.items()],
-                           axis=0)
-    all_scaler = StandardScaler().fit(all_X)
+    ind_dic = copy.deepcopy(features_dic)
+    # del ind_dic['KL']
 
-    for te_speaker, te_data in features_dic.items():
-        x_te = all_scaler.transform(te_data['x'])
+    for te_speaker, te_data in ind_dic.items():
         x_tr_list = []
         Y_tr = []
-        for tr_speaker, tr_data in features_dic.items():
+        for tr_speaker, tr_data in ind_dic.items():
             if tr_speaker == te_speaker:
                 continue
-            sp_x = all_scaler.transform(tr_data['x'])
-            x_tr_list.append(sp_x)
+            x_tr_list.append(tr_data['x'])
             Y_tr += tr_data['y']
 
         X_tr = np.concatenate(x_tr_list, axis=0)
+
+        tr_scaler = StandardScaler().fit(X_tr)
+        X_tr = tr_scaler.transform(X_tr)
+        x_te = tr_scaler.transform(te_data['x'])
+
         yield x_te, te_data['y'], X_tr, Y_tr
 
 
@@ -155,8 +158,10 @@ def fuse_all_configurations(list_of_paths):
                     assert el_dic['y'] == final_data_dic[spkr][id]['y']
                     prev_vec = final_data_dic[spkr][id]['x']
                     this_vec = el_dic['x']
-                    new_vec = np.concatenate([prev_vec, this_vec],
-                                             axis=0)
+                    new_vec = np.concatenate(
+                              [this_vec.astype(np.float64),
+                               prev_vec.astype(np.float64)], axis=0)
+
                     final_data_dic[spkr][id]['x'] = new_vec
         except Exception as e:
             print "Failed to update the Fused dictionary"
