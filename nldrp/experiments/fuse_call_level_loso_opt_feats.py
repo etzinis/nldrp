@@ -32,7 +32,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.externals import joblib
 import tabulate
 # import elm
-
+import itertools
 import gc
 import pandas as pd
 import argparse
@@ -207,22 +207,8 @@ def speaker_dependent(model,
     #
     # X_tr = pca.transform(X_tr)
     # FIXME: Per speaker normalization the dirty way
-    X_tr1 = np.zeros(X_tr.shape)
-    scaler = StandardScaler().fit(X_tr[:120, :])
-    X_tr1[:120, :] = scaler.transform(X_tr[:120, :])
 
-    scaler = StandardScaler().fit(X_tr[120:, :])
-    X_tr1[120:, :] = scaler.transform(X_tr[120:, :])
-
-    #scaler = StandardScaler().fit(X_tr)
-    #X_tr1 = scaler.transform(X_tr)
-
-    # X_te = pca.transform(X_te)
-    scaler_te = StandardScaler().fit(X_te)
-    X_te = scaler_te.transform(X_te)
-
-
-    model.fit(X_tr1, Y_tr)
+    model.fit(X_tr, Y_tr)
     # X_te = pca.transform(X_te)
 
     Y_pred = model.predict(X_te)
@@ -245,38 +231,21 @@ def speaker_independent(model,
     return model_metrics
 
 
-def evaluate_fold(model,
-                  X_te, Y_te,
-                  X_tr, Y_tr):
-    scaler = StandardScaler().fit(X_tr)
-    X_tr = scaler.transform(X_tr)
-    X_te = scaler.transform(X_te)
-
-    sd_metrics = speaker_dependent(model,
-                                   X_te, Y_te,
-                                   X_tr, Y_tr)
-
-
-    si_metrics = speaker_independent(model,
-                                     X_te, Y_te,
-                                     X_tr, Y_tr)
-
-    return sd_metrics, si_metrics
-
 def evaluate_loso(features_dic):
     all_models = list(dummy_generate_SVMs_and_LRs()) #configure_models()
     result_dic = {}
     all_results = {}
+    folds_independent = list(generate_speaker_independent_folds(features_dic))
+    folds_dependent = list(generate_speaker_dependent_folds(features_dic))
 
     #for model_name, model in all_models.items():
     for model_name, model in all_models:
         result_dic[model_name] = {}
 
-        for X_te, Y_te, X_tr, Y_tr in generate_speaker_independent_folds(
-                features_dic):
-            exp = 'independent'
+        for X_te, Y_te, X_tr, Y_tr in folds_dependent:
+            exp = 'dependent'
             m = {}
-            m[exp] = speaker_independent(
+            m[exp] = speaker_dependent(
                 model, X_te,
                 Y_te, X_tr, Y_tr)
 
@@ -286,11 +255,12 @@ def evaluate_loso(features_dic):
                      result_dic[model_name][col_name].append(v)
                 else:
                     result_dic[model_name][col_name]=[v]
-        for X_te, Y_te, X_tr, Y_tr in generate_speaker_dependent_folds(
-                features_dic):
-            exp = 'dependent'
+
+
+        for X_te, Y_te, X_tr, Y_tr in folds_independent:
+            exp = 'independent'
             m = {}
-            m[exp] = speaker_dependent(
+            m[exp] = speaker_independent(
                 model, X_te,
                 Y_te, X_tr, Y_tr)
 
