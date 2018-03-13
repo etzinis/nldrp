@@ -139,6 +139,9 @@ class ModelOptimizer(object):
                                          config_params)
             metrics = self.evaluate_model(model, fold_gen)
 
+            print config_params
+            print metrics
+
             for me in self.opt_metrics:
                 if me not in best_conf:
                     best_conf[me] = {}

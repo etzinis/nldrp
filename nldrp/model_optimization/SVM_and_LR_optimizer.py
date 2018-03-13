@@ -19,8 +19,15 @@ def generate_speaker_dependent_folds(features_dic,
     norm_per_sp_dic = copy.deepcopy(features_dic)
     # del norm_per_sp_dic['KL']
     for sp, data in norm_per_sp_dic.items():
-        this_scaler = StandardScaler().fit(data['x'])
-        norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
+        # this_scaler = StandardScaler().fit(data['x'])
+        # norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
+        m_vec = np.mean(data['x'], axis=0)
+        s_vec = np.std(data['x'], axis=0)
+        this_ar = norm_per_sp_dic[sp]['x']
+        normed_ar = (this_ar - m_vec)
+        with np.errstate(divide='ignore'):
+            normed_ar = normed_ar / (s_vec + 1e-6)
+        norm_per_sp_dic[sp]['x'] = normed_ar
 
     xy_l = [v for (sp, v) in norm_per_sp_dic.items()]
     x_all = np.concatenate([v['x'] for v in xy_l])
@@ -52,11 +59,18 @@ def generate_speaker_independent_folds(features_dic):
 
         X_tr = np.concatenate(x_tr_list, axis=0)
 
-        tr_scaler = StandardScaler().fit(X_tr)
-        X_tr = tr_scaler.transform(X_tr)
-        x_te = tr_scaler.transform(te_data['x'])
+        m_vec = np.mean(X_tr, axis=0)
+        s_vec = np.std(X_tr, axis=0)
+        X_tr_n = (X_tr - m_vec)
+        with np.errstate(divide='ignore'):
+            X_tr_n = X_tr_n / (s_vec + 1e-6)
 
-        yield x_te, te_data['y'], X_tr, Y_tr
+        x_te = te_data['x']
+        x_te_n = (x_te - m_vec)
+        with np.errstate(divide='ignore'):
+            x_te_n = x_te_n / (s_vec + 1e-6)
+
+        yield x_te_n, te_data['y'], X_tr_n, Y_tr
 
 
 
@@ -70,14 +84,15 @@ def loso_with_best_models(features_dic):
 
     best_models = {}
 
-    svm_opt_obj = Optimizer.ModelOptimizer(
-                  'svm',
-                  generate_speaker_dependent_folds(features_dic),
-                  {'C': [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10],
-                   'kernel': ['rbf']},
-                  ['w_acc', 'uw_acc'])
 
-    best_models["SVM Dependent"] = svm_opt_obj.optimize_model()
+    # svm_opt_obj = Optimizer.ModelOptimizer(
+    #               'svm',
+    #               generate_speaker_dependent_folds(features_dic),
+    #               {'C': [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10],
+    #                'kernel': ['rbf']},
+    #               ['w_acc', 'uw_acc'])
+    #
+    # best_models["SVM Dependent"] = svm_opt_obj.optimize_model()
 
     svm_opt_obj = Optimizer.ModelOptimizer(
         'svm',
@@ -115,10 +130,15 @@ def command_line_optimizer(list_of_paths):
 
     best_models = loso_with_best_models(speakers_dic)
 
-    print "Optimized LR and SVM for both Speaker Dependent and " \
-          "Independent Experimentations"
-    from pprint import pprint
-    pprint(best_models)
+    # print "List in reverse"
+    # speakers_dic = fuse_all_configurations(list_of_paths[::-1])
+    #
+    # best_models = loso_with_best_models(speakers_dic)
+
+    # print "Optimized LR and SVM for both Speaker Dependent and " \
+    #       "Independent Experimentations"
+    # from pprint import pprint
+    # pprint(best_models)
 
 
 def convert_2_numpy_per_utterance(dataset_dic):
@@ -133,7 +153,7 @@ def convert_2_numpy_per_utterance(dataset_dic):
             x_list.append(feat_vec)
             y_list.append(label)
 
-        this_utt_array = np.array(x_list)
+        this_utt_array = np.array(x_list, dtype=np.float32)
         converted_dic[spkr]['x'] = this_utt_array
         converted_dic[spkr]['y'] = y_list
 
@@ -142,25 +162,25 @@ def convert_2_numpy_per_utterance(dataset_dic):
 
 def fuse_all_configurations(list_of_paths):
 
+
     try:
-        feat_p = list_of_paths.pop(0)
-        final_data_dic = joblib.load(feat_p)
+        list_of_dics = [joblib.load(p) for p in list_of_paths]
     except Exception as e:
         print "At least one file path is required"
         raise e
 
-    while list_of_paths:
-        feat_p = list_of_paths.pop(0)
-        temp_dic = joblib.load(feat_p)
+    final_data_dic = list_of_dics.pop(0)
+
+    while list_of_dics:
+        temp_dic = list_of_dics.pop(0)
         try:
             for spkr in temp_dic:
                 for id, el_dic in temp_dic[spkr].items():
                     assert el_dic['y'] == final_data_dic[spkr][id]['y']
-                    prev_vec = final_data_dic[spkr][id]['x']
-                    this_vec = el_dic['x']
-                    new_vec = np.concatenate(
-                              [this_vec.astype(np.float64),
-                               prev_vec.astype(np.float64)], axis=0)
+                    prev_vec = list(final_data_dic[spkr][id]['x'])
+                    this_vec = list(el_dic['x'])
+                    new_vec = np.array(prev_vec+this_vec,
+                                       dtype=np.float32)
 
                     final_data_dic[spkr][id]['x'] = new_vec
         except Exception as e:
