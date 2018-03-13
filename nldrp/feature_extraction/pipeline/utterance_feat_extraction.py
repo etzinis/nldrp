@@ -22,6 +22,9 @@ sys.path.insert(0, nldrp_dir)
 import nldrp.config
 import nldrp.recurrence_plots.rqa.seg_stats_rqa as rqa_stats
 
+import nldrp.io.dataloader as dl_savee
+import nldrp.io.dataloader_emodb as dl_berlin
+import nldrp.io.dataloader_iemo as dl_iemocap
 
 def load_dataset_and_cache(dataset_name,
                            cache_dir):
@@ -32,12 +35,18 @@ def load_dataset_and_cache(dataset_name,
         dataset_dic = joblib.load(cache_path)
         return dataset_dic
 
-    import nldrp.io.dataloader as dataloader
-
     print "Loading from dataloader..."
     if dataset_name == 'SAVEE':
-        loader_obj = dataloader.SaveeDataloader(
+        loader_obj = dl_savee.SaveeDataloader(
                       savee_path=nldrp.config.SAVEE_PATH)
+        dataset_dic = loader_obj.data_dict
+    elif dataset_name == 'IEMOCAP':
+        loader_obj = dl_iemocap.IemocapDataLoader(
+            iemocap_path=nldrp.config.IEMOCAP_PATH)
+        dataset_dic = loader_obj.data_dict
+    elif dataset_name == 'BERLIN':
+        loader_obj = dl_berlin.EmodbDataLoader(
+            emodb_path=nldrp.config.BERLIN_PATH)
         dataset_dic = loader_obj.data_dict
     else:
         raise NotImplementedError('Dataset: {} is not yet integrated '
@@ -133,6 +142,8 @@ def run(config):
                                          config['cache_dir'])
     print "OK!"
 
+    exit()
+
     fs = None
     for spkr in dataset_dic:
         for id, raw_dic in dataset_dic[spkr].items():
@@ -163,7 +174,9 @@ def get_args():
     parser.add_argument("--dataset", type=str,
                         help="""The name of the dataset""",
                         required=True,
-                        choices=['SAVEE'])
+                        choices=['SAVEE',
+                                 'IEMOCAP',
+                                 'BERLIN'])
     parser.add_argument("-o", "--save_dir", type=str,
         help="""Where to store the corresponding binary file full of 
         data that will contain the dictionary for each speaker. 
