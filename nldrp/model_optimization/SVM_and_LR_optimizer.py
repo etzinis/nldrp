@@ -85,19 +85,19 @@ def loso_with_best_models(features_dic):
     best_models = {}
 
 
-    # svm_opt_obj = Optimizer.ModelOptimizer(
-    #               'svm',
-    #               generate_speaker_dependent_folds(features_dic),
-    #               {'C': [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10],
-    #                'kernel': ['rbf']},
-    #               ['w_acc', 'uw_acc'])
-    #
-    # best_models["SVM Dependent"] = svm_opt_obj.optimize_model()
+    svm_opt_obj = Optimizer.ModelOptimizer(
+                  'svm',
+                  generate_speaker_dependent_folds(features_dic),
+                  {'C': [1, 3, 5, 7, 8, 10],
+                   'kernel': ['rbf']},
+                  ['w_acc', 'uw_acc'])
+
+    best_models["SVM Dependent"] = svm_opt_obj.optimize_model()
 
     svm_opt_obj = Optimizer.ModelOptimizer(
         'svm',
         generate_speaker_independent_folds(features_dic),
-        {'C': [0.1, 0.3, 0.5, 1, 3, 5, 7, 8, 10],
+        {'C': [1, 3, 5, 7, 8, 10],
          'kernel': ['rbf']},
         ['w_acc', 'uw_acc'])
 
@@ -106,7 +106,7 @@ def loso_with_best_models(features_dic):
     lr_opt_obj = Optimizer.ModelOptimizer(
         'lr',
         generate_speaker_dependent_folds(features_dic),
-        {'C': [0.01, 0.05, 0.1, 0.3, 0.5, 1, 3],
+        {'C': [0.01, 0.05, 0.1, 0.3, 0.5, 1],
          'penalty': ['l2']},
         ['w_acc', 'uw_acc'])
 
@@ -115,7 +115,7 @@ def loso_with_best_models(features_dic):
     lr_opt_obj = Optimizer.ModelOptimizer(
         'lr',
         generate_speaker_independent_folds(features_dic),
-        {'C': [0.01, 0.05, 0.1, 0.3, 0.5, 1, 3],
+        {'C': [0.01, 0.05, 0.1, 0.3, 0.5, 1],
          'penalty': ['l2']},
         ['w_acc', 'uw_acc'])
 
