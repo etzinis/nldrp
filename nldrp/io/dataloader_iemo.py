@@ -29,10 +29,14 @@ class IemocapDataLoader(object):
                              "xxx": "unclassified", "invalid": "invalid"}
         self.data_dict = self.make_data_dict()
 
+        self.emotions_in_use = ["sad", "angry", "excited", "happy",
+                                "neutral"]
+
     def make_data_dict(self):
         data_dict = {spk: {} for spk in self.speaker_ids}
         for session in self.sessions:
-            wav_dir = os.path.join(self.data_dir, session, 'sentence', 'wav')
+            wav_dir = os.path.join(self.data_dir, session,
+                                   'sentences', 'wav')
             for subsession in sorted(os.listdir(wav_dir)):
                 annotation_file = os.path.join(self.data_dir, session, 'dialog', 'EmoEvaluation', subsession + '.txt')
                 with open(annotation_file) as f:
@@ -49,9 +53,15 @@ class IemocapDataLoader(object):
                     emotion = self.emotion_dict[annotations_dict[uttid]]
                     if emotion == 'unclassified' or emotion == 'other' or emotion == 'invalid':
                         continue
+
+                    # keep only the utterances that we will use in
+                    # the final classification
+                    if emotion not in self.emotions_in_use:
+                        continue
                     # Fs, wav, wav_duration and normalize wav to [-1,1]
                     wavpath = os.path.abspath(
-                        os.path.join(self.data_dir, session, 'sentence', 'wav', subsession, uttid + '.wav'))
+                        os.path.join(self.data_dir, session,
+                                     'sentences', 'wav', subsession, uttid + '.wav'))
                     audiofile = AudioFile(wavpath)
                     fs = audiofile.get_fs()
                     wav_dur = audiofile.get_duration_seconds()
