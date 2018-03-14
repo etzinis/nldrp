@@ -15,12 +15,11 @@ import nldrp.feature_extraction.pipeline.utterance_feat_extraction as\
     feat_extract
 
 valid_thresh_methods = ["threshold",
-                        "threshold_std",
-                        "recurrence_rate"]
+                        "threshold_std"]
 
 valid_norms = ["manhattan", "euclidean"]
 
-threshold_ratios = [0.1, 0.15, 0.2]
+threshold_ratios = [0.15, 0.2]
 
 frame_durations = [0.02, 0.03]
 
