@@ -64,7 +64,7 @@ def get_args():
                         choices=['SAVEE',
                                  'IEMOCAP',
                                  'BERLIN'])
-    parser.add_argument("-o", "--save_dir", type=str,
+    parser.add_argument("--save_dir", type=str,
         help="""Where to store the corresponding binary file full of 
         data that will contain the dictionary for each speaker. 
         Another subdic for all the sentences with their ids  
