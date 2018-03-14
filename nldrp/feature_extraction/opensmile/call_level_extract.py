@@ -26,17 +26,29 @@ nldrp_dir = os.path.join(
     '../../../')
 sys.path.insert(0, nldrp_dir)
 import nldrp.config
-import nldrp.io.dataloader as dataloader
+import nldrp.io.dataloader as dl_savee
+import nldrp.io.dataloader_emodb as dl_berlin
+import nldrp.io.dataloader_iemo as dl_iemocap
 
 
-def load_data(dataset):
-    if dataset == 'SAVEE':
-        dataset_p = nldrp.config.SAVEE_PATH
-        data_obj = dataloader.SaveeDataloader(savee_path=dataset_p)
-        return data_obj.data_dict
+def load_data(dataset_name):
+    if dataset_name == 'SAVEE':
+        loader_obj = dl_savee.SaveeDataloader(
+                      savee_path=nldrp.config.SAVEE_PATH)
+        dataset_dic = loader_obj.data_dict
+    elif dataset_name == 'IEMOCAP':
+        loader_obj = dl_iemocap.IemocapDataLoader(
+            iemocap_path=nldrp.config.IEMOCAP_PATH)
+        dataset_dic = loader_obj.data_dict
+    elif dataset_name == 'BERLIN':
+        loader_obj = dl_berlin.EmodbDataLoader(
+            emodb_path=nldrp.config.BERLIN_PATH)
+        dataset_dic = loader_obj.data_dict
     else:
         raise NotImplementedError('Dataset: {} is not yet supported '
-                                  ''.format(dataset))
+                                  ''.format(dataset_name))
+
+    return dataset_dic
 
 
 def opensmile_extract(config_p,
@@ -128,7 +140,9 @@ def get_args():
     parser.add_argument("--dataset", type=str,
                         help="""The name of the dataset""",
                         required=True,
-                        choices=['SAVEE'])
+                        choices=['SAVEE',
+                                 'IEMOCAP',
+                                 'BERLIN'])
     parser.add_argument("-o", "--save_dir", type=str,
         help="""Where to store the corresponding binary file full of 
         data that will contain the dictionary for each speaker. 
