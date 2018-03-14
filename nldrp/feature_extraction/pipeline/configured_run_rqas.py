@@ -7,21 +7,46 @@ fully configurable
 """
 
 import argparse
-import 
-import utterance_feat_extraction as feat_ectract
+import itertools
+import utterance_feat_extraction as feat_extract
 
 
-def generate_grid_space(self):
-    keys, values = zip(*self.param_grid.items())
+def generate_grid_space(param_grid):
+    keys, values = zip(*param_grid.items())
     experiments = [dict(zip(keys, v)) for v in
                    itertools.product(*values)]
-    fold_gens = itertools.tee(self.folds_gen, len(experiments))
-    for i, v in enumerate(experiments):
-        yield v, fold_gens[i]
+    return experiments
 
 
 def extract_all(args):
-    print args
+
+    param_grid = {
+                 'dataset':[args.dataset],
+                 'cache_dir': [args.cache_dir],
+                 'save_dir':[args.save_dir],
+                 'phase_space_method':args.tau_est_methods,
+                 'time_lag':args.taus,
+                 'embedding_dimension':[3],
+                 'norm':args.norms,
+                 'thresh_method':args.thresh_methods,
+                 'thresh':args.threshs,
+                 'l_min':[2],
+                 'v_min':[2],
+                 'w_min':[1],
+                 'frame_duration':args.frame_durations,
+                 # 'frame_stride':args.frame_durations / 2.0
+            }
+
+    for config_dic in generate_grid_space(param_grid):
+        config_dic['frame_stride'] = config_dic['frame_duration'] / 2.0
+        # from pprint import pprint
+        # pprint(config_dic)
+
+        try:
+            feat_extract.run(config_dic)
+        except Exception as e:
+            print(e)
+            exit()
 
 
 def get_args():
@@ -46,7 +71,7 @@ def get_args():
         and a 1d numpy matrix for each one of them.
         """,
         required=True )
-    parser.add_argument("-taus", type=int, nargs='+',
+    parser.add_argument("--taus", type=int, nargs='+',
                         help="""Time Delay Ad-hoc""",
                         default=[1])
     parser.add_argument("--tau_est_methods", type=str, nargs='+',
