@@ -27,10 +27,11 @@ class IemocapDataLoader(object):
                              "fea": "fearful", "sur": "surprised",
                              "dis": "disgusted", "oth": "other",
                              "xxx": "unclassified", "invalid": "invalid"}
-        self.data_dict = self.make_data_dict()
-
         self.emotions_in_use = ["sad", "angry", "excited", "happy",
                                 "neutral"]
+        self.data_dict = self.make_data_dict()
+
+
 
     def make_data_dict(self):
         data_dict = {spk: {} for spk in self.speaker_ids}

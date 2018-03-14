@@ -142,7 +142,14 @@ def run(config):
                                          config['cache_dir'])
     print "OK!"
 
-    exit()
+    freq = {}
+    for spkr in dataset_dic:
+        for id, raw_dic in dataset_dic[spkr].items():
+            try:
+                freq[raw_dic['emotion']] += 1
+            except:
+                freq[raw_dic['emotion']] = 1
+    print freq
 
     fs = None
     for spkr in dataset_dic:
