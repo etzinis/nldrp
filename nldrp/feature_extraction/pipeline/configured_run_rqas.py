@@ -37,7 +37,9 @@ def extract_all(args):
                  # 'frame_stride':args.frame_durations / 2.0
             }
 
-    for config_dic in generate_grid_space(param_grid):
+    all_configs = generate_grid_space(param_grid)
+    for i, config_dic in enumerate(all_configs):
+        print "Extracting {}/{}...".format(i+1, len(all_configs))
         config_dic['frame_stride'] = config_dic['frame_duration'] / 2.0
         # from pprint import pprint
         # pprint(config_dic)
