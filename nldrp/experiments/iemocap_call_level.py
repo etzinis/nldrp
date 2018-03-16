@@ -57,41 +57,61 @@ def generate_speaker_independent_folds(features_dic):
     for te_speaker, te_data in ind_dic.items():
         x_tr_list = []
         Y_tr = []
+        x_te_list = []
+        Y_te = []
+        if te_speaker.endswith('F'):
+            val_speaker = te_speaker[:-1] + 'M'
+            val_data = features_dic[val_speaker]
+        else:
+            val_speaker = te_speaker[:-1] + 'F'
+            val_data = features_dic[val_speaker]
+        x_te_list = [te_data['x'], val_data['x']]
+        Y_te = te_data['y'] + val_data['y']
         for tr_speaker, tr_data in ind_dic.items():
-            if tr_speaker == te_speaker:
+            if tr_speaker == te_speaker and tr_speaker == val_speaker:
                 continue
             x_tr_list.append(tr_data['x'])
             Y_tr += tr_data['y']
 
         X_tr = np.concatenate(x_tr_list, axis=0)
+        X_te = np.concatenate(x_te_list, axis=0)
 
         tr_scaler = StandardScaler().fit(X_tr)
         X_tr = tr_scaler.transform(X_tr)
-        x_te = tr_scaler.transform(te_data['x'])
+        x_te = tr_scaler.transform(X_te)
 
-        yield x_te, te_data['y'], X_tr, Y_tr
+        yield X_te, Y_te, X_tr, Y_tr
 
-def generate_speaker_dependent_folds(features_dic,
-                                     n_splits=5,
-                                     random_seed=7):
+
+def generate_speaker_dependent_folds(features_dic):
     norm_per_sp_dic = copy.deepcopy(features_dic)
     for sp, data in norm_per_sp_dic.items():
         this_scaler = StandardScaler().fit(data['x'])
         norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
 
-    xy_l = [v for (sp, v) in norm_per_sp_dic.items()]
-    x_all = np.concatenate([v['x'] for v in xy_l])
-    y_all = [utt_label for speaker_labels in [v['y'] for v in xy_l]
-             for utt_label in speaker_labels]
+    for te_speaker, te_data in norm_per_sp_dic.items():
+        x_tr_list = []
+        Y_tr = []
+        x_te_list = []
+        Y_te = []
+        if te_speaker.endswith('F'):
+            val_speaker = te_speaker[:-1] + 'M'
+            val_data = features_dic[val_speaker]
+        else:
+            val_speaker = te_speaker[:-1] + 'F'
+            val_data = features_dic[val_speaker]
+        x_te_list = [te_data['x'], val_data['x']]
+        Y_te = te_data['y'] + val_data['y']
+        for tr_speaker, tr_data in norm_per_sp_dic.items():
+            if tr_speaker == te_speaker and tr_speaker == val_speaker:
+                continue
+            x_tr_list.append(tr_data['x'])
+            Y_tr += tr_data['y']
 
-    skf = StratifiedKFold(n_splits=n_splits,
-                          shuffle=True,
-                          random_state=random_seed)
-    for tr_ind, te_ind in skf.split(x_all, y_all):
-        yield (x_all[te_ind],
-               [y_all[i] for i in te_ind],
-               x_all[tr_ind],
-               [y_all[i] for i in tr_ind])
+        X_tr = np.concatenate(x_tr_list, axis=0)
+        X_te = np.concatenate(x_te_list, axis=0)
+
+        yield X_te, Y_te, X_tr, Y_tr
 
 
 def generate_speaker_folds(features_dic):
