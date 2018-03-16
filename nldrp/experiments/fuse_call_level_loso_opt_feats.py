@@ -51,35 +51,30 @@ import nldrp.feature_extraction.pipeline.utterance_feature_loader as \
     feature_loader
 import nldrp.config
 
-
 def generate_speaker_independent_folds(features_dic):
-    all_X = np.concatenate([v['x'] for k, v in features_dic.items()],
-                           axis=0)
-    all_scaler = StandardScaler().fit(all_X)
+    ind_dic = copy.deepcopy(features_dic)
 
-    for te_speaker, te_data in features_dic.items():
-        if te_speaker == 'KL':
-            continue
-        x_te = all_scaler.transform(te_data['x'])
+    for te_speaker, te_data in ind_dic.items():
         x_tr_list = []
         Y_tr = []
-        for tr_speaker, tr_data in features_dic.items():
-            if tr_speaker == te_speaker or tr_speaker == 'KL':
+        for tr_speaker, tr_data in ind_dic.items():
+            if tr_speaker == te_speaker:
                 continue
-            sp_x = all_scaler.transform(tr_data['x'])
-            x_tr_list.append(sp_x)
+            x_tr_list.append(tr_data['x'])
             Y_tr += tr_data['y']
 
         X_tr = np.concatenate(x_tr_list, axis=0)
-        yield x_te, te_data['y'], X_tr, Y_tr
 
+        tr_scaler = StandardScaler().fit(X_tr)
+        X_tr = tr_scaler.transform(X_tr)
+        x_te = tr_scaler.transform(te_data['x'])
+
+        yield x_te, te_data['y'], X_tr, Y_tr
 
 def generate_speaker_dependent_folds(features_dic,
                                      n_splits=5,
                                      random_seed=7):
     norm_per_sp_dic = copy.deepcopy(features_dic)
-    if 'KL' in norm_per_sp_dic:
-        del norm_per_sp_dic['KL']
     for sp, data in norm_per_sp_dic.items():
         this_scaler = StandardScaler().fit(data['x'])
         norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
@@ -320,78 +315,57 @@ def nl_feature_load(list_of_paths):
     return nl_features
 
 
+def safe_mkdirs(path):
+    """! Makes recursively all the directory in input path """
+    if not os.path.exists(path):
+        try:
+            os.makedirs(path)
+        except Exception as e:
+            raise IOError(
+                ("Failed to create recursive directories: "
+                " {}".format(path)
+                )
+            )
+
+
 def fusion_loso(list_of_paths):
     all_results = {}
     emo_data_dic = joblib.load(nldrp.config.EMOBASE_PATH)
     nl_feature_dic = nl_feature_load(list_of_paths)
+    result_dir = os.path.join(nldrp.config.BASE_PATH, 'results')
+    result_up2now_dir = os.path.join(result_dir, 'up2now')
+    safe_mkdirs(result_dir)
+    safe_mkdirs(result_up2now_dir)
     for nl_feat_p, temp_dic in nl_feature_dic.items():
+        up2now_file = os.path.join(result_up2now_dir, '{}.json'.format(nl_feat_p))
+        if os.path.isfile(up2now_file):
+            print "Skipping: {}".format(nl_feat_p)
+            continue
         print nl_feat_p
         final_data_dic = copy.deepcopy(emo_data_dic)
-        print "COPY"
         try:
             for spkr in temp_dic:
-                for id, el_dic in temp_dic[spkr].items():
-                    assert el_dic['y'] == final_data_dic[spkr][id]['y']
-                    prev_vec = final_data_dic[spkr][id]['x']
+                for _id, el_dic in temp_dic[spkr].items():
+                    assert el_dic['y'] == final_data_dic[spkr][_id]['y']
+                    prev_vec = final_data_dic[spkr][_id]['x']
                     this_vec = el_dic['x']
                     new_vec = np.concatenate([prev_vec, this_vec], axis=0)
-                    final_data_dic[spkr][id]['x'] = new_vec
+                    final_data_dic[spkr][_id]['x'] = new_vec
         except Exception as e:
             print "Failed to update the Fused dictionary"
             raise e
 
         fused_converted_dic = convert_2_numpy_per_utterance(final_data_dic)
 
-        print "FUSE"
-
         results = evaluate_loso(fused_converted_dic)
-        print "EVALUATE"
 
         all_results[nl_feat_p] = results
-        formatted_results = {'configs': []}
-        for k, v in all_results.items():
-            for item, lst in v.items():
-                cnt = len(lst)
-                if item in formatted_results:
-                    formatted_results[item] += lst
-                else:
-                    formatted_results[item] = lst
-            for _ in range(cnt):
-                formatted_results['configs'].append(k)
+        results_up2now = {nl_feat_p: results}
+        with open(up2now_file, 'w') as fd:
+            json.dump(results_up2now, fd)
 
-        print "AGGREGATE RESULTS"
-
-        with open(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.json'), 'w') as fd:
-            json.dump(formatted_results, fd)
-
-        print "JSON DUMP"
-
-        gc.collect()
-        #df = pd.DataFrame.from_dict(formatted_results)
-        #df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'up2now_best_features.csv'))
-
-    print "FINISHED"
-
-    formatted_results = {'configs': []}
-    for k, v in all_results.items():
-        for item, lst in v.items():
-            cnt = len(lst)
-            if item in formatted_results:
-                formatted_results[item].append(lst)
-            else:
-                formatted_results[item] = [lst]
-        for _ in range(cnt):
-            formatted_results['configs'].append(k)
-
-    print "FORMATTED RESULTS"
-    try:
-        with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
-            json.dump(formatted_results, fd)
-        df = pd.DataFrame.from_dict(formatted_results)
-        df.to_csv(os.path.join(nldrp.config.BASE_PATH, 'best_features.csv'))
-    except Exception as e:
-         with open(os.path.join(nldrp.config.BASE_PATH, 'best_features.json'), 'w') as fd:
-            json.dump(formatted_results, fd)
+    with open(os.path.join(result_dir, 'results.json'), 'w') as fd:
+        json.dump(all_results, fd)
 
     return all_results
 
@@ -405,19 +379,6 @@ def get_args():
     parser.add_argument('-i', '--input_features_paths', nargs='+',
                         help='File paths of the features you want to '
                              'concatenate and the classify')
-
-    # parser.add_argument("--dataset", type=str,
-    #                     help="""The name of the dataset""",
-    #                     required=True,
-    #                     choices=['SAVEE'])
-    # parser.add_argument("-i", "--save_dir", type=str,
-    #     help="""Where the corresponding binary file full of
-    #     data that will contain the dictionary for each speaker is
-    #     stored.
-    #     Another subdic for all the sentences with their ids
-    #     and a 1d numpy matrix for each one of them.
-    #     """,
-    #     default=nldrp.config.EXTRACTED_FEATURES_PATH )
     args = parser.parse_args()
     return args
 
