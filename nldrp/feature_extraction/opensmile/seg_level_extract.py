@@ -77,9 +77,12 @@ def segment_opensmile_extraction(config_p,
     temp_seg_path = '/tmp/temp_segment.wav'
     int16_s = np.asarray(segment_signal*32767, dtype=np.int16)
     wav_write(temp_seg_path, fs, int16_s)
-    return opensmile_extract(config_p,
+    opensmile_feat_vec = opensmile_extract(config_p,
                              temp_seg_path,
                              temp_p)
+
+    subprocess.call(['rm', temp_seg_path])
+    return opensmile_feat_vec
 
 
 def extract_per_segment(config_p,
@@ -108,12 +111,13 @@ def extract_per_segment(config_p,
                                              segment_dur,
                                              segment_ol)
 
-    segment_vecs = [segment_opensmile_extraction(config_p,
-                    signal[st:st+seg_size], fs, temp_p)
-                    for st in st_indices]
+    segment_feat_vecs = [segment_opensmile_extraction(config_p,
+                         signal[st:st+seg_size], fs, temp_p)
+                         for st in st_indices]
 
-    print len(segment_vecs)
-    return segment_vecs
+    all_feat_vecs = np.array(segment_feat_vecs, dtype=np.float32)
+
+    return all_feat_vecs
 
 
 def get_features_dic(dataset_dic,
@@ -139,8 +143,6 @@ def get_features_dic(dataset_dic,
                                   segment_ol,
                                   fs,
                                   signal)
-
-            exit()
 
             features_dic[spkr][id]['x'] = segment_features_2D
             features_dic[spkr][id]['y'] = raw_dic['emotion']
@@ -190,9 +192,10 @@ def run(dataset,
                                         segment_dur,
                                         segment_ol)
 
-        exit()
-        opensm_config = dataset+'_linear_emobase2010'
+        opensm_config = dataset+('_linear_emobase2010_segl_{}_segol_'
+                                 '{}'.format(segment_dur, segment_ol))
         save_features_dic(opensm_config, features_dic, save_dir)
+
 
 def get_args():
     """! Command line parser for Opensmile Segment level feature
