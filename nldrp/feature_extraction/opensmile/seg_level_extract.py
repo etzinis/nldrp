@@ -29,6 +29,7 @@ import nldrp.io.dataloader_emodb as dl_berlin
 import nldrp.io.dataloader_iemo as dl_iemocap
 import nldrp.feature_extraction.frame_breaker as seg_breaker
 
+from scipy.io.wavfile import write as wav_write
 
 def load_data(dataset_name):
     if dataset_name == 'SAVEE':
@@ -68,24 +69,56 @@ def opensmile_extract(config_p,
     return feature_vec
 
 
+def segment_opensmile_extraction(config_p,
+                                 segment_signal,
+                                 fs,
+                                 temp_p):
+
+    temp_seg_path = '/tmp/temp_segment.wav'
+    int16_s = np.asarray(segment_signal*32767, dtype=np.int16)
+    wav_write(temp_seg_path, fs, int16_s)
+    return opensmile_extract(config_p,
+                             temp_seg_path,
+                             temp_p)
+
+
 def extract_per_segment(config_p,
-                        wavpath,
                         temp_p,
-                        segment_,
+                        segment_dur,
                         segment_ol,
                         fs,
                         signal):
 
-    seg_st_indices = seg_breaker.get_frames_start_indices(signal,
-                                                          fs,
-                                                          segment_len,
-                                                          segment_ol)
-    return None
+    init_len = len(signal)
+    seg_len = int(segment_dur * fs)
+    ol_len = int(segment_ol * fs)
+    if init_len <= seg_len:
+        len_to_pad = seg_len + 1
+    else:
+        n_segs = int((init_len - seg_len) / ol_len)
+        if seg_len + n_segs*ol_len == init_len:
+            len_to_pad = seg_len + n_segs*ol_len + 1
+        else:
+            len_to_pad = seg_len + (n_segs+1) * ol_len + 1
+    padded_s = seg_breaker.zero_pad_frame(signal, len_to_pad)
+
+    st_indices, seg_size, seg_step =  \
+        seg_breaker.get_frames_start_indices(padded_s,
+                                             fs,
+                                             segment_dur,
+                                             segment_ol)
+
+    segment_vecs = [segment_opensmile_extraction(config_p,
+                    signal[st:st+seg_size], fs, temp_p)
+                    for st in st_indices]
+
+    print len(segment_vecs)
+    return segment_vecs
 
 
 def get_features_dic(dataset_dic,
                      config_p,
-                     segment_len,
+                     segment_dur,
                      segment_ol):
     features_dic = {}
     total = sum([len(v) for k, v in dataset_dic.items()])
@@ -98,13 +131,11 @@ def get_features_dic(dataset_dic,
 
             fs = raw_dic['Fs']
             signal = raw_dic['wav']
-            wavpath = raw_dic['wavpath']
 
             segment_features_2D = extract_per_segment(
                                   config_p,
-                                  wavpath,
                                   '/tmp/opensmile_feats_tmp',
-                                  segment_len,
+                                  segment_dur,
                                   segment_ol,
                                   fs,
                                   signal)
@@ -147,7 +178,7 @@ def save_features_dic(opensm_config,
 def run(dataset,
         save_dir,
         config_p,
-        segment_len,
+        segment_dur,
         segment_ol):
 
         print "Parsing Dataset <{}>...".format(dataset)
@@ -156,7 +187,7 @@ def run(dataset,
 
         features_dic = get_features_dic(dataset_dic,
                                         config_p,
-                                        segment_len,
+                                        segment_dur,
                                         segment_ol)
 
         exit()
@@ -187,11 +218,14 @@ def get_args():
                         required=False,
                         default=nldrp.config.OPENSMILE_CONFIG_PATH)
     parser.add_argument("--segment_dur", type=float,
-                        help="""The specified length of the segments""",
+                        help="""The specified length of the segments 
+                        in seconds
+                        """,
                         required=False,
                         default=1.0)
-    parser.add_argument("--segment_ol_r", type=float,
-                        help="""The specified overlap ratio between the 
+    parser.add_argument("--segment_ol", type=float,
+                        help="""The specified overlap in seconds 
+                        between the 
                         segments""",
                         required=False,
                         default=0.5)
@@ -205,5 +239,5 @@ if __name__ == "__main__":
     run(args.dataset,
         args.save_dir,
         args.config,
-        args.segment_len,
-        args.segment_ol_r)
+        args.segment_dur,
+        args.segment_ol)
