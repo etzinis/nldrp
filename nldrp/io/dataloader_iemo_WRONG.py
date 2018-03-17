@@ -37,7 +37,7 @@ class IemocapDataLoader(object):
         data_dict = {spk: {} for spk in self.speaker_ids}
         for session in self.sessions:
             wav_dir = os.path.join(self.data_dir, session,
-                                   'sentences', 'wav')
+                                   'sentence', 'wav')
             for subsession in sorted(os.listdir(wav_dir)):
                 annotation_file = os.path.join(self.data_dir, session, 'dialog', 'EmoEvaluation', subsession + '.txt')
                 with open(annotation_file) as f:
@@ -62,7 +62,7 @@ class IemocapDataLoader(object):
                     # Fs, wav, wav_duration and normalize wav to [-1,1]
                     wavpath = os.path.abspath(
                         os.path.join(self.data_dir, session,
-                                     'sentences', 'wav', subsession, uttid + '.wav'))
+                                     'sentence', 'wav', subsession, uttid + '.wav'))
                     audiofile = AudioFile(wavpath)
                     fs = audiofile.get_fs()
                     wav_dur = audiofile.get_duration_seconds()
@@ -96,6 +96,10 @@ if __name__ == "__main__":
     args = get_args()
     savee_data_obj = IemocapDataLoader(iemocap_path=args.iemocap_path)
     from pprint import pprint
+
+    dataset_dic = savee_data_obj.data_dict
+    for spkr in dataset_dic:
+        print spkr, len(dataset_dic[spkr])
 
     pprint(savee_data_obj.data_dict['Ses04M']['script01_1_F003'])
     # pprint(savee_data_obj.data_dict['DC']['a01']['phone_details'][0])
