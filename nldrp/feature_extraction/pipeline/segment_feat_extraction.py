@@ -13,6 +13,7 @@ import sys
 from sklearn.externals import joblib
 from progress.bar import ChargingBar
 import time
+import pprint
 
 nldrp_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -57,7 +58,41 @@ def load_dataset_and_cache(dataset_name,
     return dataset_dic
 
 
-def get_features_dic(dataset_dic, config):
+
+
+
+def extract_per_segment(fs,
+                        config,
+                        signal,
+                        segment_dur,
+                        segment_ol):
+    init_len = len(signal)
+    seg_len = int(segment_dur * fs)
+    ol_len = int(segment_ol * fs)
+    if init_len <= seg_len:
+        len_to_pad = seg_len + 1
+    else:
+        n_segs = int((init_len - seg_len) / ol_len)
+        if seg_len + n_segs * ol_len == init_len:
+            len_to_pad = seg_len + n_segs * ol_len + 1
+        else:
+            len_to_pad = seg_len + (n_segs + 1) * ol_len + 1
+
+    print segment_dur
+    print segment_ol
+    print len(signal)
+    exit()
+
+    seg_extr = rqa_stats.SegmentRQAStatistics(fs=fs, **config)
+
+    one_segment_feats = seg_extr.extract(signal)
+
+    return one_segment_feats
+
+def get_features_dic(dataset_dic,
+                     config,
+                     segment_dur,
+                     segment_ol):
     features_dic = {}
     total = sum([len(v) for k, v in dataset_dic.items()])
     bar = ChargingBar("Extracting RQA Measures for {} "
@@ -69,8 +104,12 @@ def get_features_dic(dataset_dic, config):
             fs = raw_dic['Fs']
             signal = raw_dic['wav']
 
-            seg_extr = rqa_stats.SegmentRQAStatistics(fs=fs, **config)
-            features_dic[spkr][id]['x'] = seg_extr.extract(signal)
+            segment_features_2D = extract_per_segment(fs,
+                                                      config,
+                                                      signal,
+                                                      segment_dur,
+                                                      segment_ol)
+            features_dic[spkr][id]['x'] = segment_features_2D
             features_dic[spkr][id]['y'] = raw_dic['emotion']
 
             bar.next()
@@ -127,7 +166,7 @@ def features_are_already_extracted(config, fs):
         fs
     ))
 
-    utterance_save_dir = os.path.join(config['save_dir'], 'utterance/')
+    utterance_save_dir = os.path.join(config['save_dir'], 'segment/')
     save_p = os.path.join(utterance_save_dir, exper_dat_name)
     if os.path.lexists(save_p):
         print "Found features in: {}".format(save_p)
@@ -135,7 +174,9 @@ def features_are_already_extracted(config, fs):
     return False
 
 
-def run(config):
+def run(config,
+        segment_dur,
+        segment_ol):
 
     print "Parsing Dataset <{}>...".format(config['dataset'])
     dataset_dic = load_dataset_and_cache(config['dataset'],
@@ -157,14 +198,21 @@ def run(config):
             fs = raw_dic['Fs']
             break
         break
+
     if features_are_already_extracted(config, fs):
         return
 
     before = time.time()
-    features_dic, fs = get_features_dic(dataset_dic, config)
+    features_dic, fs = get_features_dic(dataset_dic,
+                                        config,
+                                        segment_dur,
+                                        segment_ol
+                                        )
     now = time.time()
     print "Finished Extraction after: {} seconds!".format(
          time.strftime('%H:%M:%S', time.gmtime(now - before)))
+
+    exit()
 
     save_feature_dic(features_dic, config, fs)
 
@@ -191,7 +239,7 @@ def get_args():
         and a 1d numpy matrix for each one of them.
         """,
         default=nldrp.config.EXTRACTED_FEATURES_PATH )
-    parser.add_argument("-tau", type=int,
+    parser.add_argument("--tau", type=int,
                         help="""Time Delay Ad-hoc""",
                         default=1)
     parser.add_argument("--tau_est_method", type=str,
@@ -200,7 +248,7 @@ def get_args():
                         frame?)""",
                         default='ad_hoc',
                         choices=['ad_hoc', 'ami'])
-    parser.add_argument("-norm", type=str,
+    parser.add_argument("--norm", type=str,
                         help="""Norm for computing in RPs""",
                         default='euclidean',
                         choices=["manhattan", "euclidean", "supremum"])
@@ -210,12 +258,24 @@ def get_args():
                         choices=["threshold",
                                 "threshold_std",
                                 "recurrence_rate"])
-    parser.add_argument("-thresh", type=float,
+    parser.add_argument("--thresh", type=float,
                         help="""Value of threshold in (0,1)""",
                         default=0.1)
     parser.add_argument("--frame_duration", type=float,
                         help="""Frame duration in seconds""",
                         default=0.02)
+    parser.add_argument("--segment_dur", type=float,
+                        help="""The specified length of the segments 
+                            in seconds
+                            """,
+                        required=False,
+                        default=1.0)
+    parser.add_argument("--segment_ol", type=float,
+                        help="""The specified overlap in seconds 
+                            between the 
+                            segments""",
+                        required=False,
+                        default=0.5)
     args = parser.parse_args()
     return args
 
@@ -239,4 +299,6 @@ if __name__ == "__main__":
         'frame_duration':args.frame_duration,
         'frame_stride':args.frame_duration / 2.0
     }
-    run(config)
+    run(config,
+        args.segment_dur,
+        args.segment_ol)
