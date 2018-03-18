@@ -11,7 +11,6 @@ etc.
 """
 
 from scipy.io import arff
-import pandas as pd
 import argparse
 import os
 import sys
@@ -58,6 +57,8 @@ def opensmile_extract(config_p,
                     '-C', config_p,
                     '-I', wavpath,
                     '-O', temp_p]
+
+
 
     subprocess.call(extr_command)
 
