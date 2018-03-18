@@ -147,9 +147,12 @@ def safe_mkdirs(path):
 
 def save_feature_dic(feature_dic,
                      config,
-                     fs):
+                     fs,
+                     seg_dur,
+                     seg_ol):
 
-    exper_dat_name = ('{}-rqa-{}-tau-{}-{}-{}-{}-dur-{}-fs-{}'
+    exper_dat_name = ('{}-rqa-{}-tau-{}-{}-{}-{}-dur-{}-fs-{}-segd-'
+                      '{}-segstr-{}'
                       '.dat'.format(
                         config['dataset'],
                         config['phase_space_method'],
@@ -158,7 +161,9 @@ def save_feature_dic(feature_dic,
                         config['thresh_method'],
                         config['thresh'],
                         config['frame_duration'],
-                        fs
+                        fs,
+                        seg_dur,
+                        seg_ol
                       ))
 
     seg_save_dir = os.path.join(config['save_dir'], 'segment/')
@@ -229,7 +234,11 @@ def run(config,
     print "Finished Extraction after: {} seconds!".format(
          time.strftime('%H:%M:%S', time.gmtime(now - before)))
 
-    save_feature_dic(features_dic, config, fs)
+    save_feature_dic(features_dic,
+                     config,
+                     fs,
+                     segment_dur,
+                     segment_ol)
 
 
 def get_args():
