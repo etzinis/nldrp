@@ -14,6 +14,7 @@ from sklearn.externals import joblib
 from progress.bar import ChargingBar
 import time
 import pprint
+import numpy as np
 
 nldrp_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -60,7 +61,11 @@ def load_dataset_and_cache(dataset_name,
     return dataset_dic
 
 
-
+def rqa_feats_for_this_segment(fs,
+                               config,
+                               signal):
+    seg_extr = rqa_stats.SegmentRQAStatistics(fs=fs, **config)
+    return seg_extr.extract(signal)
 
 
 def extract_per_segment(fs,
@@ -87,21 +92,15 @@ def extract_per_segment(fs,
                                              fs,
                                              segment_dur,
                                              segment_ol)
-    print st_indices
-    print seg_step
-    print seg_len
-    print ol_len
-    print len(padded_s)
-    print segment_dur
-    print segment_ol
-    print len(signal)
-    exit()
 
-    seg_extr = rqa_stats.SegmentRQAStatistics(fs=fs, **config)
+    segment_feat_vecs = [rqa_feats_for_this_segment(
+                         fs, config, signal[st:st + seg_size])
+                         for st in st_indices]
 
-    one_segment_feats = seg_extr.extract(signal)
+    all_feat_vecs = np.array(segment_feat_vecs, dtype=np.float32)
 
-    return one_segment_feats
+    return all_feat_vecs
+
 
 def get_features_dic(dataset_dic,
                      config,
@@ -123,6 +122,8 @@ def get_features_dic(dataset_dic,
                                                       signal,
                                                       segment_dur,
                                                       segment_ol)
+            print segment_features_2D.shape
+
             features_dic[spkr][id]['x'] = segment_features_2D
             features_dic[spkr][id]['y'] = raw_dic['emotion']
 
@@ -159,7 +160,7 @@ def save_feature_dic(feature_dic,
                         fs
                       ))
 
-    utterance_save_dir = os.path.join(config['save_dir'], 'utterance/')
+    utterance_save_dir = os.path.join(config['save_dir'], 'segment/')
     safe_mkdirs(utterance_save_dir)
     save_p = os.path.join(utterance_save_dir, exper_dat_name)
     print "Saving Features Dictionary in {}".format(save_p)
@@ -225,8 +226,6 @@ def run(config,
     now = time.time()
     print "Finished Extraction after: {} seconds!".format(
          time.strftime('%H:%M:%S', time.gmtime(now - before)))
-
-    exit()
 
     save_feature_dic(features_dic, config, fs)
 
