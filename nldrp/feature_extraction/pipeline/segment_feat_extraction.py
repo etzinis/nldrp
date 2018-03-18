@@ -123,7 +123,6 @@ def get_features_dic(dataset_dic,
                                                       signal,
                                                       segment_dur,
                                                       segment_ol)
-            print segment_features_2D.shape
 
             features_dic[spkr][id]['x'] = segment_features_2D
             features_dic[spkr][id]['y'] = raw_dic['emotion']
