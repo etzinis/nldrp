@@ -106,6 +106,7 @@ def get_features_dic(dataset_dic,
                      config,
                      segment_dur,
                      segment_ol):
+
     features_dic = {}
     total = sum([len(v) for k, v in dataset_dic.items()])
     bar = ChargingBar("Extracting RQA Measures for {} "
@@ -160,9 +161,9 @@ def save_feature_dic(feature_dic,
                         fs
                       ))
 
-    utterance_save_dir = os.path.join(config['save_dir'], 'segment/')
-    safe_mkdirs(utterance_save_dir)
-    save_p = os.path.join(utterance_save_dir, exper_dat_name)
+    seg_save_dir = os.path.join(config['save_dir'], 'segment/')
+    safe_mkdirs(seg_save_dir)
+    save_p = os.path.join(seg_save_dir, exper_dat_name)
     print "Saving Features Dictionary in {}".format(save_p)
     joblib.dump(feature_dic, save_p, compress=3)
     print "OK!"
@@ -181,8 +182,8 @@ def features_are_already_extracted(config, fs):
         fs
     ))
 
-    utterance_save_dir = os.path.join(config['save_dir'], 'segment/')
-    save_p = os.path.join(utterance_save_dir, exper_dat_name)
+    seg_save_dir = os.path.join(config['save_dir'], 'segment/')
+    save_p = os.path.join(seg_save_dir, exper_dat_name)
     if os.path.lexists(save_p):
         print "Found features in: {}".format(save_p)
         return True
@@ -223,6 +224,7 @@ def run(config,
                                         segment_dur,
                                         segment_ol
                                         )
+
     now = time.time()
     print "Finished Extraction after: {} seconds!".format(
          time.strftime('%H:%M:%S', time.gmtime(now - before)))
