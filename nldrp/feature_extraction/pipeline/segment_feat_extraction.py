@@ -26,6 +26,8 @@ import nldrp.recurrence_plots.rqa.seg_stats_rqa as rqa_stats
 import nldrp.io.dataloader as dl_savee
 import nldrp.io.dataloader_emodb as dl_berlin
 import nldrp.io.dataloader_iemo as dl_iemocap
+import nldrp.feature_extraction.frame_breaker as seg_breaker
+
 
 def load_dataset_and_cache(dataset_name,
                            cache_dir):
@@ -78,6 +80,18 @@ def extract_per_segment(fs,
         else:
             len_to_pad = seg_len + (n_segs + 1) * ol_len + 1
 
+    padded_s = seg_breaker.zero_pad_frame(signal, len_to_pad)
+
+    st_indices, seg_size, seg_step = \
+        seg_breaker.get_frames_start_indices(padded_s,
+                                             fs,
+                                             segment_dur,
+                                             segment_ol)
+    print st_indices
+    print seg_step
+    print seg_len
+    print ol_len
+    print len(padded_s)
     print segment_dur
     print segment_ol
     print len(signal)
