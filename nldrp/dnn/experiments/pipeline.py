@@ -10,11 +10,10 @@ from nldrp.dnn.util.training import LabelTransformer, Trainer, Checkpoint, \
     EarlyStop, class_weigths
 
 
-def compute_metrics(Y_predicted, Y_true):
+def unweighted_accuracy(Y_predicted, Y_true):
     cmat = confusion_matrix(Y_true, Y_predicted)
     with np.errstate(divide='ignore'):
-        uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1) + 1e-6
-                                     )).mean()
+        uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1) + 1e-6)).mean()
         if np.isnan(uw_acc):
             uw_acc = 0.0
 
@@ -54,14 +53,15 @@ def get_model_trainer(X_train, X_test, y_train, y_test, config):
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters,
+                                 # lr=0.0005,
                                  weight_decay=config["weight_decay"])
 
     metrics = {
-        "un_acc": compute_metrics,
+        "un_acc": unweighted_accuracy,
         "acc": lambda y, y_hat: accuracy_score(y, y_hat),
         "f1": lambda y, y_hat: f1_score(y, y_hat, average='macro'),
     }
-    monitor = "f1"
+    monitor = "un_acc"
 
     trainer = Trainer(model=model,
                       task="clf",
