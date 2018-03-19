@@ -1,13 +1,8 @@
-import os
 from copy import deepcopy
 
 import numpy as np
-from sklearn.externals import joblib
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-
-from nldrp.dnn.config import DNN_BASE_PATH
 
 
 def compute_metrics(Y_predicted, Y_true):
@@ -40,21 +35,19 @@ def generate_speaker_splits(features_dic):
             yield train_speakers, val_speaker, test_speaker
 
 
-def generate_cross_norm_folds(features_dic):
+def generate_folds(features_dic, conf):
+    """
+
+    Args:
+        features_dic: dataset
+        conf: valid confs are ["cross", "independent", "dependent"]
+
+    Returns:
+        X_train, X_val, X_test, y_train, y_val, y_test
+
+    """
     ind_dic = deepcopy(features_dic)
 
-    ##############################################
-    # Fit Normalizer on all speakers
-    ##############################################
-    xs = []
-    for speaker, utterances in ind_dic.items():
-        for utt_name, utt_data in utterances.items():
-            xs.append(utt_data["x"])
-    normalizer = StandardScaler().fit(np.concatenate(xs, axis=0))
-
-    ##############################################
-    # Generate splits
-    ##############################################
     for split in generate_speaker_splits(ind_dic):
         train_speakers, val_speaker, test_speaker = split
 
@@ -67,9 +60,11 @@ def generate_cross_norm_folds(features_dic):
 
         # training data
         for train_speaker in train_speakers:
+            speaker_data = []
             for utt_name, utt_data in ind_dic[train_speaker].items():
-                X_train.append(utt_data["x"])
+                speaker_data.append(utt_data["x"])
                 y_train.append(utt_data["y"])
+            X_train.append(speaker_data)
 
         # validation data
         for utt_name, utt_data in ind_dic[val_speaker].items():
@@ -81,104 +76,50 @@ def generate_cross_norm_folds(features_dic):
             X_test.append(utt_data["x"])
             y_test.append(utt_data["y"])
 
-        # normalization
-        X_train = [normalizer.transform(x) for x in X_train]
-        X_val = [normalizer.transform(x) for x in X_val]
-        X_test = [normalizer.transform(x) for x in X_test]
+        # Normalize across datasets
+        if conf == "cross":
+            X_train = [utterance for speaker in X_train
+                       for utterance in speaker]
 
-        # speaker dependent
-        # for each speaker normalize its features independently
+            X_all = X_train + X_val + X_test
+            normalizer = StandardScaler().fit(np.concatenate(X_all, axis=0))
+
+            X_train = [normalizer.transform(x) for x in X_train]
+            X_val = [normalizer.transform(x) for x in X_val]
+            X_test = [normalizer.transform(x) for x in X_test]
+
+        # Normalize based on training data
+        elif conf == "independent":
+            X_train = [utterance for speaker in X_train
+                       for utterance in speaker]
+
+            normalizer = StandardScaler().fit(np.concatenate(X_train, axis=0))
+
+            X_train = [normalizer.transform(x) for x in X_train]
+            X_val = [normalizer.transform(x) for x in X_val]
+            X_test = [normalizer.transform(x) for x in X_test]
+
+        # Normalize per speaker
+        elif conf == "dependent":
+
+            for i, speaker in enumerate(X_train):
+                xs = np.concatenate(speaker, axis=0)
+                normalizer = StandardScaler().fit(xs)
+                X_train[i] = [normalizer.transform(x) for x in speaker]
+
+            # flat training data
+            X_train = [utterance for speaker in X_train
+                       for utterance in speaker]
+
+            # normalizer validation speaker
+            val_norm = StandardScaler().fit(np.concatenate(X_val, axis=0))
+            X_val = [val_norm.transform(x) for x in X_val]
+
+            # normalizer test speaker
+            test_norm = StandardScaler().fit(np.concatenate(X_test, axis=0))
+            X_test = [test_norm.transform(x) for x in X_test]
+
+        else:
+            raise ValueError("Invalid configuration!")
 
         yield X_train, X_val, X_test, y_train, y_val, y_test
-
-
-def generate_speaker_dependent_folds(features_dic):
-    norm_per_sp_dic = deepcopy(features_dic)
-    for sp, data in norm_per_sp_dic.items():
-        this_scaler = StandardScaler().fit(data['x'])
-        norm_per_sp_dic[sp]['x'] = this_scaler.transform(data['x'])
-
-    sessions = ['Ses01', 'Ses02', 'Ses03', 'Ses04', 'Ses05']
-
-    for ses in sessions:
-        te_speaker = ses + 'M'
-        val_speaker = ses + 'F'
-        te_data = norm_per_sp_dic[te_speaker]
-        val_data = norm_per_sp_dic[val_speaker]
-        x_te_list = [te_data['x'], val_data['x']]
-        Y_te = te_data['y'] + val_data['y']
-        x_tr_list = []
-        Y_tr = []
-        for tr_speaker, tr_data in norm_per_sp_dic.items():
-            if tr_speaker == te_speaker or tr_speaker == val_speaker:
-                continue
-            x_tr_list.append(tr_data['x'])
-            Y_tr += tr_data['y']
-
-        X_tr = np.concatenate(x_tr_list, axis=0)
-        X_te = np.concatenate(x_te_list, axis=0)
-        print "Dependent train: {}".format(X_tr.shape)
-        print "Dependent test: {}".format(X_te.shape)
-
-        yield X_te, Y_te, X_tr, Y_tr
-
-
-def generate_speaker_independent_folds(features_dic):
-    ind_dic = deepcopy(features_dic)
-
-    sessions = ['Ses01', 'Ses02', 'Ses03', 'Ses04', 'Ses05']
-
-    for ses in sessions:
-        te_speaker = ses + 'M'
-        val_speaker = ses + 'F'
-        te_data = ind_dic[te_speaker]
-        val_data = ind_dic[val_speaker]
-        x_te_list = [te_data['x'], val_data['x']]
-        Y_te = te_data['y'] + val_data['y']
-        x_tr_list = []
-        Y_tr = []
-        for tr_speaker, tr_data in ind_dic.items():
-            if tr_speaker == te_speaker or tr_speaker == val_speaker:
-                print "Ignoring {}".format(tr_speaker)
-                continue
-            x_tr_list.append(tr_data['x'])
-            Y_tr += tr_data['y']
-
-        X_tr = np.concatenate(x_tr_list, axis=0)
-        X_te = np.concatenate(x_te_list, axis=0)
-
-        tr_scaler = StandardScaler().fit(X_tr)
-        X_tr = tr_scaler.transform(X_tr)
-        X_te = tr_scaler.transform(X_te)
-        print "Independent train: {}".format(X_tr.shape)
-        print "Independent test: {}".format(X_te.shape)
-        yield X_te, Y_te, X_tr, Y_tr
-
-
-def dummy_split():
-    """
-    Generate *dummy* splits in order to verify the DNN pipeline
-    :return:
-    :rtype:
-    """
-    IEMOCAP_PATH = os.path.join(DNN_BASE_PATH, 'data',
-                                "IEMOCAP_linear_emobase2010_segl_1.0_segol_0.5")
-
-    data_dic = joblib.load(IEMOCAP_PATH)
-
-    X = []
-    y = []
-    for speaker, utterances in data_dic.items():
-        for utterance, sample in utterances.items():
-            X.append(sample["x"])
-            y.append(sample["y"])
-
-    normalizer = StandardScaler()
-    normalizer.fit(np.concatenate(X, axis=0))
-
-    X = [normalizer.transform(x) for x in X]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
-                                                        stratify=y,
-                                                        random_state=0)
-    return X_train, X_test, y_train, y_test
