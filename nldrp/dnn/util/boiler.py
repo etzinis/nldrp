@@ -3,19 +3,16 @@ This file contains functions with logic that is used in almost all models,
 with the goal of avoiding boilerplate code (and bugs due to copy-paste),
 such as training pipelines.
 """
+from __future__ import print_function
+
 import glob
 import os
 import pickle
 
 import torch
 from torch.autograd import Variable
-
-from config import BASE_PATH
-from modules.dataloading import WordDataset, CharDataset
-from util.load_embeddings import load_word_vectors
-from util.multi_gpu import get_gpu_id
-from util.nlp import twitter_preprocess
-from util.training import sort_batch
+from nldrp.config import BASE_PATH
+from nldrp.dnn.util.training import sort_batch
 
 
 def load_pretrained_model(name):
@@ -129,9 +126,9 @@ def pipeline_classification(criterion=None, binary=False, eval=False):
 
         # convert to CUDA Variables
         if torch.cuda.is_available():
-            inputs = inputs.cuda(get_gpu_id())
-            labels = labels.cuda(get_gpu_id())
-            lengths = lengths.cuda(get_gpu_id())
+            inputs = inputs.cuda()
+            labels = labels.cuda()
+            lengths = lengths.cuda()
 
         outputs, attentions = nn_model(inputs, lengths)
 
@@ -187,10 +184,10 @@ def pipeline_classification_tagged(criterion=None, eval=False):
 
         # convert to CUDA Variables
         if torch.cuda.is_available():
-            inputs = inputs.cuda(get_gpu_id())
-            labels = labels.cuda(get_gpu_id())
-            tag = tag.cuda(get_gpu_id())
-            lengths = lengths.cuda(get_gpu_id())
+            inputs = inputs.cuda()
+            labels = labels.cuda()
+            tag = tag.cuda()
+            lengths = lengths.cuda()
 
         outputs, attentions = nn_model(inputs, tag, lengths)
 
@@ -242,9 +239,9 @@ def pipeline_regression(criterion=None, eval=False):
 
         # convert to CUDA Variables
         if torch.cuda.is_available():
-            inputs = inputs.cuda(get_gpu_id())
-            labels = labels.cuda(get_gpu_id())
-            lengths = lengths.cuda(get_gpu_id())
+            inputs = inputs.cuda()
+            labels = labels.cuda()
+            lengths = lengths.cuda()
 
         outputs, attentions = nn_model(inputs, lengths)
 
@@ -298,10 +295,10 @@ def pipeline_regression_tagged(criterion=None, eval=False):
 
         # convert to CUDA Variables
         if torch.cuda.is_available():
-            inputs = inputs.cuda(get_gpu_id())
-            labels = labels.cuda(get_gpu_id())
-            tag = tag.cuda(get_gpu_id())
-            lengths = lengths.cuda(get_gpu_id())
+            inputs = inputs.cuda()
+            labels = labels.cuda()
+            tag = tag.cuda()
+            lengths = lengths.cuda()
 
         outputs, attentions = nn_model(inputs, tag, lengths)
 

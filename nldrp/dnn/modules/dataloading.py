@@ -3,7 +3,9 @@ import pickle
 
 import numpy
 
-from config import BASE_PATH
+from torch.utils.data import Dataset
+
+from nldrp.dnn.config import DNN_BASE_PATH
 
 
 class BaseDataset(Dataset):
@@ -47,12 +49,12 @@ class BaseDataset(Dataset):
 
     @staticmethod
     def _check_cache():
-        cache_dir = os.path.join(BASE_PATH, "_cache")
+        cache_dir = os.path.join(DNN_BASE_PATH, "_cache")
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
 
     def _get_cache_filename(self):
-        return os.path.join(BASE_PATH, "_cache",
+        return os.path.join(DNN_BASE_PATH, "_cache",
                             "preprocessed_{}.p".format(self.name))
 
     def _write_cache(self, data):

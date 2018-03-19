@@ -1,7 +1,7 @@
 import numpy
 from visdom import Visdom
 
-from logger.plotting import plot_line
+from nldrp.dnn.logger.plotting import plot_line
 
 
 class Inspector(object):

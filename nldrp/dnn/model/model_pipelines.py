@@ -77,7 +77,7 @@ def classifier(config, name,
     weights = class_weigths(train_set.labels, to_pytorch=True)
     if torch.cuda.is_available():
         model.cuda(get_new_gpu_id())
-        weights = weights.cuda(get_gpu_id())
+        weights = weights.cuda()
 
     # depending on the number of classes, we should use a different loss
     if classes > 2:

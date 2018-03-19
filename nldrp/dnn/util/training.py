@@ -1,19 +1,18 @@
+from __future__ import print_function
+
 import math
 import os
 import pickle
 import sys
 import time
-
 import numpy
 import torch
 from sklearn.utils import compute_class_weight
 from torch.nn.utils import clip_grad_norm
 from torch.utils.data import DataLoader
 
-from config import BASE_PATH
-from logger.experiment import Experiment, Metric
-from logger.inspection import Inspector
-from util.multi_gpu import get_gpu_id
+from nldrp.dnn.logger.experiment import Metric, Experiment
+from nldrp.dnn.logger.inspection import Inspector
 
 
 def sort_batch(lengths):
@@ -40,16 +39,16 @@ def sort_batch(lengths):
 
     def sort(iterable):
         if iterable.is_cuda:
-            return iterable[sorted_idx.cuda(get_gpu_id())][
-                reverse_idx.cuda(get_gpu_id())]
+            return iterable[sorted_idx.cuda()][
+                reverse_idx.cuda()]
         else:
             return iterable[sorted_idx][reverse_idx]
 
     def unsort(iterable):
         if iterable.is_cuda:
-            return iterable[reverse_idx.cuda(get_gpu_id())][
-                original_idx.cuda(get_gpu_id())][
-                reverse_idx.cuda(get_gpu_id())]
+            return iterable[reverse_idx.cuda()][
+                original_idx.cuda()][
+                reverse_idx.cuda()]
         else:
             return iterable[reverse_idx][original_idx][reverse_idx]
 

@@ -1,7 +1,7 @@
 from torch import nn, torch
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from modules.regularization import GaussianNoise
+from nldrp.dnn.modules.regularization import GaussianNoise
 
 
 class RecurrentEncoder(nn.Module):

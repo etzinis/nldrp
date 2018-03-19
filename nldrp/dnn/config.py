@@ -1,3 +1,3 @@
 import os
 
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+DNN_BASE_PATH = os.path.dirname(os.path.abspath(__file__))

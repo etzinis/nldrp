@@ -10,7 +10,7 @@ class GaussianNoise(nn.Module):
             stddev (float): the standard deviation of the distribution
             mean (float): the mean of the distribution
         """
-        super().__init__()
+        super(GaussianNoise).__init__()
         self.stddev = stddev
         self.mean = mean
 

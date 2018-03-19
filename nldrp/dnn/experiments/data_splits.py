@@ -2,16 +2,16 @@ import os
 
 import numpy
 from sklearn.externals import joblib
-from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from config import BASE_PATH
+from nldrp.dnn.config import DNN_BASE_PATH
 
-IEMOCAP_PATH = os.path.join(BASE_PATH, 'data',
+IEMOCAP_PATH = os.path.join(DNN_BASE_PATH, 'data',
                             "IEMOCAP_linear_emobase2010_segl_1.0_segol_0.5")
 
 
-def random_split():
+def dummy_split():
     """
     Generate *dummy* splits in order to verify the DNN pipeline
     :return:

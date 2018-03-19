@@ -2,9 +2,9 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 
-from modules.attention import SelfAttention
-from modules.modules import RecurrentEncoder
-from modules.regularization import GaussianNoise
+from nldrp.dnn.modules.attention import SelfAttention
+from nldrp.dnn.modules.modules import RecurrentEncoder
+from nldrp.dnn.modules.regularization import GaussianNoise
 
 
 class ModelHelper:
@@ -58,8 +58,8 @@ class ModelHelper:
         return mask
 
 
-class MultitaskEmotionModel(nn.Module, ModelHelper):
-    def __init__(self, input_size, classes, labels, **kwargs):
+class EmotionModel(nn.Module, ModelHelper):
+    def __init__(self, input_size, classes, **kwargs):
         """
         Define the layer of the model and perform the initializations
         of the layers (wherever it is necessary)
@@ -67,7 +67,7 @@ class MultitaskEmotionModel(nn.Module, ModelHelper):
             embeddings (numpy.ndarray): the 2D ndarray with the word vectors
             out_size ():
         """
-        super(MultitaskEmotionModel, self).__init__()
+        super(EmotionModel, self).__init__()
 
         input_noise = kwargs.get("input_noise", 0.)
         input_dropout = kwargs.get("input_dropout", 0.2)
@@ -106,8 +106,7 @@ class MultitaskEmotionModel(nn.Module, ModelHelper):
                                        non_linearity=attention_activation,
                                        batch_first=True)
 
-        self.classification = nn.Linear(feature_size, classes)
-        self.regression = nn.Linear(feature_size, labels)
+        self.classifier = nn.Linear(feature_size, classes)
 
     def forward(self, x, lengths):
         x = self.noise_input(x)
@@ -124,7 +123,6 @@ class MultitaskEmotionModel(nn.Module, ModelHelper):
         # unsort
         representations = unsort(representations)
 
-        categorical = self.classification(representations)
-        continuous = self.regression(representations)
+        logits = self.classifier(representations)
 
-        return categorical, continuous
+        return logits

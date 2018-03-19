@@ -19,7 +19,7 @@ def read_config():
         return config
 
 
-def get_gpu_id():
+def :
     return GPU_ID
 
 

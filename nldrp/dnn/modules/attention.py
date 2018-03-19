@@ -1,7 +1,6 @@
 from torch import nn, torch
 from torch.autograd import Variable
 
-from util.multi_gpu import get_gpu_id
 
 
 class SelfAttention(nn.Module):
@@ -42,7 +41,7 @@ class SelfAttention(nn.Module):
         mask = Variable(torch.ones(attentions.size())).detach()
 
         if attentions.data.is_cuda:
-            mask = mask.cuda(get_gpu_id())
+            mask = mask.cuda()
 
         for i, l in enumerate(lengths.data):  # skip the first sentence
             if l < max_len:
