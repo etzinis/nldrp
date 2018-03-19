@@ -26,41 +26,70 @@ def compute_metrics(Y_predicted, Y_true):
     return metric_dic
 
 
+def generate_speaker_splits(features_dic):
+    sessions = ['Ses01', 'Ses02', 'Ses03', 'Ses04', 'Ses05']
+
+    for session in sessions:
+        for val_gender, test_gender in [("M", "F"), ("F", "M")]:
+            val_speaker = session + val_gender
+            test_speaker = session + test_gender
+
+            train_speakers = [x for x in sorted(features_dic.keys())
+                              if x not in [test_speaker, val_speaker]]
+
+            yield train_speakers, val_speaker, test_speaker
+
+
 def generate_cross_norm_folds(features_dic):
     ind_dic = deepcopy(features_dic)
 
-    sessions = ['Ses01', 'Ses02', 'Ses03', 'Ses04', 'Ses05']
+    ##############################################
+    # Fit Normalizer on all speakers
+    ##############################################
     xs = []
-    for sp, data in ind_dic.items():
-        xs.append(data['x'])
+    for speaker, utterances in ind_dic.items():
+        for utt_name, utt_data in utterances.items():
+            xs.append(utt_data["x"])
+    normalizer = StandardScaler().fit(np.concatenate(xs, axis=0))
 
-    X = np.concatenate(xs, axis=0)
-    scaler = StandardScaler().fit(X)
+    ##############################################
+    # Generate splits
+    ##############################################
+    for split in generate_speaker_splits(ind_dic):
+        train_speakers, val_speaker, test_speaker = split
 
-    for ses in sessions:
-        te_speaker = ses + 'M'
-        val_speaker = ses + 'F'
-        te_data = ind_dic[te_speaker]
-        val_data = ind_dic[val_speaker]
-        x_te_list = [te_data['x'], val_data['x']]
-        Y_te = te_data['y'] + val_data['y']
-        x_tr_list = []
-        Y_tr = []
-        for tr_speaker, tr_data in ind_dic.items():
-            if tr_speaker == te_speaker or tr_speaker == val_speaker:
-                continue
-            x_tr_list.append(tr_data['x'])
-            Y_tr += tr_data['y']
+        X_train = []
+        y_train = []
+        X_test = []
+        y_test = []
+        X_val = []
+        y_val = []
 
-        X_tr = np.concatenate(x_tr_list, axis=0)
-        X_te = np.concatenate(x_te_list, axis=0)
+        # training data
+        for train_speaker in train_speakers:
+            for utt_name, utt_data in ind_dic[train_speaker].items():
+                X_train.append(utt_data["x"])
+                y_train.append(utt_data["y"])
 
-        X_tr = scaler.transform(X_tr)
-        X_te = scaler.transform(X_te)
-        print "Xnorm train: {}".format(X_tr.shape)
-        print "Xnorm test: {}".format(X_te.shape)
+        # validation data
+        for utt_name, utt_data in ind_dic[val_speaker].items():
+            X_val.append(utt_data["x"])
+            y_val.append(utt_data["y"])
 
-        yield X_te, Y_te, X_tr, Y_tr
+        # testing data
+        for utt_name, utt_data in ind_dic[test_speaker].items():
+            X_test.append(utt_data["x"])
+            y_test.append(utt_data["y"])
+
+        # normalization
+        X_train = [normalizer.transform(x) for x in X_train]
+        X_val = [normalizer.transform(x) for x in X_val]
+        X_test = [normalizer.transform(x) for x in X_test]
+
+        # speaker dependent
+        # for each speaker normalize its features independently
+
+        yield X_train, X_val, X_test, y_train, y_val, y_test
 
 
 def generate_speaker_dependent_folds(features_dic):

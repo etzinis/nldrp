@@ -1,33 +1,17 @@
 import os
 
 from nldrp.dnn.config import DNN_BASE_PATH
-from nldrp.dnn.experiments.data_splits import dummy_split, \
-    generate_cross_norm_folds
+from nldrp.dnn.experiments.data_splits import generate_speaker_splits
+
 from sklearn.externals import joblib
-
-# Load the datasets ####################################
-from nldrp.dnn.experiments.main import get_model_trainer
-from nldrp.dnn.model.configs import EMOTION
-
-config = EMOTION
 
 IEMOCAP_PATH = os.path.join(DNN_BASE_PATH, 'data',
                             "IEMOCAP_linear_emobase2010_segl_1.0_segol_0.5")
 
 features_dic = joblib.load(IEMOCAP_PATH)
-for fold in generate_cross_norm_folds(features_dic):
-    X_train, X_test, y_train, y_test = fold
-
-    trainer = get_model_trainer(X_train, X_test, y_train, y_test, config)
-
-    print("Training...")
-    for epoch in range(config["epochs"]):
-        trainer.model_train()
-        trainer.model_eval()
-        print()
-
-        trainer.checkpoint.check()
-
-        if trainer.early_stopping.stop():
-            print("Early stopping...")
-            break
+for split in generate_speaker_splits(features_dic):
+    train_speakers, val_speaker, test_speaker = split
+    print("-" * 40)
+    print("train_speakers: ", train_speakers)
+    print("val_speaker: ", val_speaker)
+    print("test_speaker: ", test_speaker)
