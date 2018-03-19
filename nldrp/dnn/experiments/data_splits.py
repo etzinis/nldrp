@@ -48,6 +48,11 @@ def generate_folds(features_dic, conf):
     """
     ind_dic = deepcopy(features_dic)
 
+    for spkr in ind_dic:
+        for _id, el_dic in ind_dic[spkr].items():
+            if el_dic['y'] == 'happy' or el_dic['y'] == 'excited':
+                ind_dic[spkr][_id]['y'] = 'happy_excited'
+
     for split in generate_speaker_splits(ind_dic):
         train_speakers, val_speaker, test_speaker = split
 
@@ -122,4 +127,7 @@ def generate_folds(features_dic, conf):
         else:
             raise ValueError("Invalid configuration!")
 
+        print("-" * 40)
+        print("val_speaker:", val_speaker)
+        print("test_speaker:", test_speaker)
         yield X_train, X_val, X_test, y_train, y_val, y_test
