@@ -125,4 +125,4 @@ class EmotionModel(nn.Module, ModelHelper):
 
         logits = self.classifier(representations)
 
-        return logits
+        return logits, attentions

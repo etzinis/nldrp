@@ -11,6 +11,7 @@ from sklearn.utils import compute_class_weight
 from torch.nn.utils import clip_grad_norm
 from torch.utils.data import DataLoader
 
+from nldrp.dnn.config import DNN_BASE_PATH
 from nldrp.dnn.logger.experiment import Metric, Experiment
 from nldrp.dnn.logger.inspection import Inspector
 
@@ -357,7 +358,7 @@ class Checkpoint(MetricWatcher):
         self.last_saved = None
 
         if self.dir is None:
-            self.dir = os.path.join(BASE_PATH, 'semeval2018/trained/')
+            self.dir = os.path.join(DNN_BASE_PATH, "trained")
 
     def _define_cp_name(self):
         """
