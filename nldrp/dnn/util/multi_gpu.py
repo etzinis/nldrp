@@ -1,10 +1,21 @@
 import json
 import os
 
-from config import BASE_PATH
+import torch
 
-GPU_FILE = os.path.join(BASE_PATH, "GPU.json")
+from nldrp.dnn.config import DNN_BASE_PATH
+
+GPU_FILE = os.path.join(DNN_BASE_PATH, "GPU.json")
 GPU_ID = 0
+
+# Run first
+with open(GPU_FILE, 'w') as f:
+    count = torch.cuda.device_count()
+    config = {
+        "count": count,
+        "current": 1
+    }
+    json.dump(config, f)
 
 
 def write_config(config):
@@ -19,7 +30,7 @@ def read_config():
         return config
 
 
-def :
+def get_gpu_id():
     return GPU_ID
 
 

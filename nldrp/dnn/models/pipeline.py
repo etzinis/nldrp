@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, \
 from nldrp.dnn.modules.dataloading import EmotionDataset
 from nldrp.dnn.modules.models import EmotionModel
 from nldrp.dnn.util.boiler import pipeline_classification
+from nldrp.dnn.util.multi_gpu import get_gpu_id, get_new_gpu_id
 from nldrp.dnn.util.training import LabelTransformer, Trainer, Checkpoint, \
     EarlyStop, class_weigths
 
@@ -36,8 +37,8 @@ def get_model_trainer(X_train, X_test, y_train, y_test, config):
     print(model)
     weights = class_weigths(y_train, to_pytorch=True)
     if torch.cuda.is_available():
-        model.cuda()
-        weights = weights.cuda()
+        model.cuda(get_new_gpu_id())
+        weights = weights.cuda(get_gpu_id())
 
     criterion = torch.nn.CrossEntropyLoss(weight=weights)
 

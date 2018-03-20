@@ -13,6 +13,7 @@ import torch
 from torch.autograd import Variable
 
 from nldrp.dnn.config import DNN_BASE_PATH
+from nldrp.dnn.util.multi_gpu import get_gpu_id
 from nldrp.dnn.util.training import sort_batch
 
 
@@ -60,7 +61,7 @@ def pipeline_classification(criterion=None, eval=False):
 
         # convert to CUDA
         if torch.cuda.is_available():
-            batch = map(lambda x: x.cuda(), batch)
+            batch = map(lambda x: x.cuda(get_gpu_id()), batch)
 
         inputs, labels, lengths = batch
 

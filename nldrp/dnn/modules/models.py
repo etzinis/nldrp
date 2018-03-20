@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from nldrp.dnn.modules.attention import SelfAttention
 from nldrp.dnn.modules.modules import RecurrentEncoder
 from nldrp.dnn.modules.regularization import GaussianNoise
+from nldrp.dnn.util.multi_gpu import get_gpu_id
 
 
 class ModelHelper:
@@ -30,7 +31,7 @@ class ModelHelper:
         reverse_idx = torch.linspace(batch_size - 1, 0, batch_size).long()
 
         if lengths.data.is_cuda:
-            reverse_idx = reverse_idx.cuda()
+            reverse_idx = reverse_idx.cuda(get_gpu_id())
 
         sorted_lengths = sorted_lengths[reverse_idx]
 
@@ -50,7 +51,7 @@ class ModelHelper:
         mask = Variable(torch.ones(sequence.size(axis))).detach()
 
         if sequence.data.is_cuda:
-            mask = mask.cuda()
+            mask = mask.cuda(get_gpu_id())
 
         for i, l in enumerate(lengths.data):  # skip the first sentence
             if l < max_len:

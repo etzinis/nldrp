@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from nldrp.dnn.config import DNN_BASE_PATH
 from nldrp.dnn.logger.experiment import Metric, Experiment
 from nldrp.dnn.logger.inspection import Inspector
+from nldrp.dnn.util.multi_gpu import get_gpu_id
 
 
 def sort_batch(lengths):
@@ -40,16 +41,16 @@ def sort_batch(lengths):
 
     def sort(iterable):
         if iterable.is_cuda:
-            return iterable[sorted_idx.cuda()][
-                reverse_idx.cuda()]
+            return iterable[sorted_idx.cuda(get_gpu_id())][
+                reverse_idx.cuda(get_gpu_id())]
         else:
             return iterable[sorted_idx][reverse_idx]
 
     def unsort(iterable):
         if iterable.is_cuda:
-            return iterable[reverse_idx.cuda()][
-                original_idx.cuda()][
-                reverse_idx.cuda()]
+            return iterable[reverse_idx.cuda(get_gpu_id())][
+                original_idx.cuda(get_gpu_id())][
+                reverse_idx.cuda(get_gpu_id())]
         else:
             return iterable[reverse_idx][original_idx][reverse_idx]
 
