@@ -16,8 +16,7 @@ from nldrp.dnn.models.configs import EMOTION_CONFIG
 from hyperopt import hp, STATUS_OK, STATUS_FAIL
 from sklearn.externals import joblib
 
-from nldrp.dnn.models.data_splits import generate_folds, \
-    generate_speaker_splits, get_split
+from nldrp.dnn.models.data_splits import get_split
 from nldrp.dnn.models.pipeline import get_model_trainer
 
 ##############################################################################
@@ -40,8 +39,8 @@ PARAM_SPACE = {
     "encoder_size": hp.choice('encoder_size', [128, 256]),
     "encoder_layers": hp.choice('encoder_layers', [1, 2]),
     "input_noise": hp.choice('input_noise', [0.2, 0.5, 0.7]),
-    "input_dropout": hp.choice('input_dropout', [0.2, 0.4, 0.8]),
-    "encoder_dropout": hp.choice('encoder_dropout', [0.3, 0.5]),
+    "input_dropout": hp.choice('input_dropout', [0.3, 0.5, 0.8]),
+    "encoder_dropout": hp.choice('encoder_dropout', [0.3, 0.5, 0.8]),
 }
 
 

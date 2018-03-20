@@ -1,10 +1,7 @@
 from copy import deepcopy
-import os
+
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from sklearn.externals import joblib
-
-from nldrp.dnn.config import DNN_BASE_PATH
 
 
 def generate_speaker_splits(features_dic):
@@ -17,6 +14,12 @@ def generate_speaker_splits(features_dic):
 
             train_speakers = [x for x in sorted(features_dic.keys())
                               if x not in [test_speaker, val_speaker]]
+
+            # print("-" * 40)
+            # print("train_speakers", train_speakers)
+            # print("val_speaker", val_speaker)
+            # print("test_speaker", test_speaker)
+            # print("-" * 40)
 
             yield train_speakers, val_speaker, test_speaker
 
