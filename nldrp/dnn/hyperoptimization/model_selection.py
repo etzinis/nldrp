@@ -50,4 +50,4 @@ def analysis(name):
     # trial_curves()
 
 
-# analysis("trials/task3a")
+# analysis("yolo")

@@ -4,11 +4,11 @@ from nldrp.dnn.config import DNN_BASE_PATH
 from sklearn.externals import joblib
 
 # Load the datasets ####################################
-from nldrp.dnn.models.configs import EMOTION
+from nldrp.dnn.models.configs import EMOTION_CONFIG
 from nldrp.dnn.models.data_splits import generate_folds
 from nldrp.dnn.models.pipeline import get_model_trainer
 
-config = EMOTION
+config = EMOTION_CONFIG
 
 IEMOCAP_PATH = os.path.join(DNN_BASE_PATH, 'data',
                             "IEMOCAP_linear_emobase2010_segl_1.0_segol_0.5")

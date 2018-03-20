@@ -4,11 +4,11 @@ Model Configurations
 
 """
 
-EMOTION = {
+EMOTION_CONFIG = {
     "name": "EMOTION",
     "batch_train": 32,
-    "batch_eval": 1024,
-    "epochs": 100,
+    "batch_eval": 32,
+    "epochs": 10,
     "input_noise": 0.2,
     "input_dropout": 0.5,
     "encoder_dropout": 0.5,
