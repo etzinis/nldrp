@@ -1,23 +1,8 @@
 import argparse
 
-from hyperoptimization.hparams_spaces import (HP_TASK_3A,
-                                                          HP_ISEAR, HP_TASK1_EC,
-                                                          HP_TASK1_EI_REG,
-                                                          HP_TASK1_V_REG,
-                                                          HP_TASK_3B,
-                                                          HP_TASK1_EI_OC,
-                                                          HP_TASK1_V_OC,
-                                                          HP_TASK_2A)
-from hyperoptimization.model_wrappers import (tune_task_3a,
-                                                          tune_isear,
-                                                          tune_task_1_e_c,
-                                                          tune_task_1_ei_reg,
-                                                          tune_task_1_v_reg,
-                                                          tune_task_3b,
-                                                          tune_task_1_ei_oc,
-                                                          tune_task_1_v_oc,
-                                                          tune_task_2a)
-from util.hypertuning import hyperopt_run_trials
+from nldrp.dnn.hyperoptimization.hparams_spaces import HP_EMOTION
+from nldrp.dnn.hyperoptimization.hypertuning import hyperopt_run_trials
+from nldrp.dnn.hyperoptimization.model_wrappers import tune_emotion
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', help='run name.', required=True)
@@ -27,15 +12,7 @@ args = parser.parse_args()
 print(args)
 
 models = {
-    "task_3a": (tune_task_3a, HP_TASK_3A),
-    "task_2a": (tune_task_2a, HP_TASK_2A),
-    "task_3b": (tune_task_3b, HP_TASK_3B),
-    "isear": (tune_isear, HP_ISEAR),
-    "task_1_e_c": (tune_task_1_e_c, HP_TASK1_EC),
-    "task_1_ei_oc": (tune_task_1_ei_oc, HP_TASK1_EI_OC),
-    "task_1_ei_reg": (tune_task_1_ei_reg, HP_TASK1_EI_REG),
-    "task_1_v_reg": (tune_task_1_v_reg, HP_TASK1_V_REG),
-    "task_1_v_oc": (tune_task_1_v_oc, HP_TASK1_V_OC),
+    "emotion": (tune_emotion, HP_EMOTION),
 }
 
 model_wrapper, params_space = models[args.name]
