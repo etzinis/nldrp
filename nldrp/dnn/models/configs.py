@@ -6,8 +6,8 @@ Model Configurations
 
 EMOTION_CONFIG = {
     "name": "EMOTION",
-    "batch_train": 100,
-    "batch_eval": 100,
+    "batch_train": 60,
+    "batch_eval": 60,
     "epochs": 100,
     "input_noise": 0.0,
     "input_dropout": 0.0,
