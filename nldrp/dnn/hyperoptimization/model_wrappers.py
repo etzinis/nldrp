@@ -3,6 +3,9 @@ import os
 from hyperopt import STATUS_OK, STATUS_FAIL
 from sklearn.model_selection import train_test_split
 
+from nldrp.dnn.models.configs import EMOTION_CONFIG
+from nldrp.dnn.models.pipeline import get_model_trainer
+
 
 def tune_se20174a():
     DATA_DIR = os.path.join(BASE_PATH, 'data')
@@ -47,14 +50,5 @@ def tune_se20174a():
         except Exception as e:
             print("There was an error!!!", e)
             return {'loss': 0, 'status': STATUS_FAIL}
-
-    return train
-
-
-def tune_emotion():
-    # load data and config
-
-    def train(params):
-        pass
 
     return train

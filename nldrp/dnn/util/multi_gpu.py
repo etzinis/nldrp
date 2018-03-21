@@ -8,14 +8,22 @@ from nldrp.dnn.config import DNN_BASE_PATH
 GPU_FILE = os.path.join(DNN_BASE_PATH, "GPU.json")
 GPU_ID = 0
 
-# Run first
-with open(GPU_FILE, 'w') as f:
-    count = torch.cuda.device_count()
-    config = {
-        "count": count,
-        "current": 1
-    }
-    json.dump(config, f)
+GPU_COUNT = torch.cuda.device_count()
+if not os.path.exists(GPU_FILE):
+    with open(GPU_FILE, 'w') as f:
+
+        config = {
+            "count": GPU_COUNT,
+            "current": 1
+        }
+        json.dump(config, f)
+
+else:
+    with open(GPU_FILE, 'r') as f:
+        config = json.load(f)
+        config["count"] = GPU_COUNT
+    with open(GPU_FILE, 'w') as f:
+        json.dump(config, f)
 
 
 def write_config(config):

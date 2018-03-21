@@ -1,7 +1,7 @@
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, \
-    f1_score
-
+    f1_score, confusion_matrix
+import numpy as np
 # Load the datasets ####################################
 from nldrp.dnn.modules.dataloading import EmotionDataset
 from nldrp.dnn.modules.models import EmotionModel
@@ -9,6 +9,16 @@ from nldrp.dnn.util.boiler import pipeline_classification
 from nldrp.dnn.util.multi_gpu import get_gpu_id, get_new_gpu_id
 from nldrp.dnn.util.training import LabelTransformer, Trainer, Checkpoint, \
     EarlyStop, class_weigths
+
+
+def unweighted_accuracy(y, y_hat):
+    cmat = confusion_matrix(y, y_hat)
+    with np.errstate(divide='ignore'):
+        uw_acc = (cmat.diagonal() / (1.0 * cmat.sum(axis=1) + 1e-6)).mean()
+        if np.isnan(uw_acc):
+            uw_acc = 0.
+
+    return uw_acc
 
 
 def get_model_trainer(X_train, X_test, y_train, y_test, config):
@@ -48,12 +58,10 @@ def get_model_trainer(X_train, X_test, y_train, y_test, config):
 
     metrics = {
         "acc": lambda y, y_hat: accuracy_score(y, y_hat),
-        "precision": lambda y, y_hat: precision_score(y, y_hat,
-                                                      average='macro'),
-        "recall": lambda y, y_hat: recall_score(y, y_hat, average='macro'),
+        "un_acc": unweighted_accuracy,
         "f1": lambda y, y_hat: f1_score(y, y_hat, average='macro'),
     }
-    monitor = "f1"
+    monitor = "un_acc"
 
     trainer = Trainer(model=model,
                       task="clf",

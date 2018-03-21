@@ -195,7 +195,8 @@ def predict(model, pipeline, dataloader, task,
         y.extend(labels)
         y_pred.extend(predicted)
         posteriors.extend(list(posts.squeeze()))
-        attentions.extend(list(atts.data.cpu().numpy().squeeze()))
+        if atts is not None:
+            attentions.extend(list(atts.data.cpu().numpy().squeeze()))
 
     avg_loss = total_loss / i_batch
 
