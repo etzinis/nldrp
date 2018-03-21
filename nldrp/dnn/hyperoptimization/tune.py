@@ -24,7 +24,7 @@ from nldrp.dnn.models.pipeline import get_model_trainer
 ##############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', help='run name.', required=True)
+parser.add_argument('--name', help='run name', required=True)
 parser.add_argument('--index', help='for parallel computation', default=None)
 parser.add_argument('--conf', help='task', default="independent")
 parser.add_argument('--val_speaker', help='validation speaker',
@@ -74,6 +74,10 @@ def tuning_pipeline():
                                                                args.conf)
 
     def train(params):
+        print()
+        print("-" * 40)
+        print(params)
+        print("-" * 40)
         model_config.update(params)
         trainer = get_model_trainer(X_train, X_test, y_train, y_test,
                                     model_config)

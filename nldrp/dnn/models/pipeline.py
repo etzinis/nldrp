@@ -54,6 +54,7 @@ def get_model_trainer(X_train, X_test, y_train, y_test, config):
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters,
+                                 lr=config["lr"],
                                  weight_decay=config["weight_decay"])
 
     metrics = {
