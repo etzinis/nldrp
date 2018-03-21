@@ -36,10 +36,16 @@ class ModelHelper:
         sorted_lengths = sorted_lengths[reverse_idx]
 
         def sort(iterable):
-            return iterable[sorted_idx.data][reverse_idx]
+            if len(iterable.shape) > 1:
+                return iterable[sorted_idx.data][reverse_idx]
+            else:
+                return iterable
 
         def unsort(iterable):
-            return iterable[reverse_idx][original_idx][reverse_idx]
+            if len(iterable.shape) > 1:
+                return iterable[reverse_idx][original_idx][reverse_idx]
+            else:
+                return iterable
 
         return sorted_lengths, sort, unsort
 

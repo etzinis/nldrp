@@ -1,5 +1,5 @@
 from __future__ import print_function
-
+import collections
 import math
 import os
 import pickle
@@ -179,11 +179,24 @@ def predict(model, pipeline, dataloader, task,
         posts = outputs.data.cpu().numpy()
 
         # get the actual predictions (classes and so on...)
-        predicted = _get_predictions(posts, task)
+        if len(posts.shape) == 1:
+            predicted = _get_predictions(numpy.expand_dims(posts, axis=0), task)
+        else:
+            predicted = _get_predictions(posts, task)
 
         # to numpy
-        labels = list(labels.data.cpu().numpy().squeeze())
-        predicted = list(predicted.squeeze())
+        labels = labels.data.cpu().numpy().squeeze().tolist()
+        predicted = predicted.squeeze().tolist()
+        posts = posts.squeeze().tolist()
+        if atts is not None:
+            atts = atts.data.cpu().numpy().squeeze().tolist()
+
+        if not isinstance(labels, collections.Iterable):
+            labels = [labels]
+            predicted = [predicted]
+            posts = [posts]
+            if atts is not None:
+                atts = [atts]
 
         # make transformations to the predictions
         if label_transformer is not None:
@@ -194,9 +207,9 @@ def predict(model, pipeline, dataloader, task,
 
         y.extend(labels)
         y_pred.extend(predicted)
-        posteriors.extend(list(posts.squeeze()))
+        posteriors.extend(posts)
         if atts is not None:
-            attentions.extend(list(atts.data.cpu().numpy().squeeze()))
+            attentions.extend(atts)
 
     avg_loss = total_loss / i_batch
 

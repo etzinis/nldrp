@@ -22,5 +22,5 @@ EMOTION_CONFIG = {
     "base": None,
     "patience": 10,
     "weight_decay": 0.0,
-    "clip_norm": 1,
+    "clip_norm": 5,
 }

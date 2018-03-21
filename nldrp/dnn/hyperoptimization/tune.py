@@ -52,7 +52,7 @@ def tuning_pipeline():
     model_config = EMOTION_CONFIG
 
     IEMOCAP_PATH = os.path.join(DNN_BASE_PATH, 'data',
-                                "IEMOCAP_linear_emobase2010_segl_1.0_segol_0.5")
+                                "IEMOCAP_emobase2010_rqa.dat")
 
     ind_dic = joblib.load(IEMOCAP_PATH)
     splits_file = os.path.join(DNN_BASE_PATH, 'hyperoptimization',

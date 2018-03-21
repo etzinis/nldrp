@@ -70,7 +70,10 @@ def pipeline_classification(criterion=None, eval=False):
         if eval:
             return outputs, labels, attentions, None
 
-        loss = criterion(outputs, labels)
+        if len(outputs.shape) == 1:
+            loss = criterion(outputs.unsqueeze(dim=0), labels)
+        else:
+            loss = criterion(outputs, labels)
 
         return outputs, labels, attentions, loss
 
