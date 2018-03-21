@@ -51,11 +51,12 @@ def hyperopt_run_trials(name, model, params, random_trials=10):
                 max_evals=len(trials.trials) + 1,
                 trials=trials)
 
-    with open(name + ".hyperopt", "wb") as f:
-        print("saving trials...", end=" ")
-        opt_data = {
-            "trials": trials,
-            "space": params,
-        }
-        pickle.dump(opt_data, f)
-        print("done!")
+    if trials.results[-1]["status"] == "ok":
+        with open(name + ".hyperopt", "wb") as f:
+            print("saving trials...", end=" ")
+            opt_data = {
+                "trials": trials,
+                "space": params,
+            }
+            pickle.dump(opt_data, f)
+            print("done!")
