@@ -156,7 +156,7 @@ class UnicornBinaryPlot(object):
         rp_obj = unicorn_rp.RecurrencePlot(X,
                                            silence_level=10,
                                            metric=self.norm,
-                                           threshold=0.1)
+                                           threshold=self.threshold)
 
         return rp_obj.recurrence_matrix()
 
