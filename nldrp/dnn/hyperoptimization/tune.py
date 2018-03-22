@@ -72,7 +72,9 @@ def tuning_pipeline():
                                                                test_speaker,
                                                                ind_dic,
                                                                args.conf)
-
+    X_train += X_val
+    y_train += y_val
+    
     def train(params):
         print()
         print("-" * 40)

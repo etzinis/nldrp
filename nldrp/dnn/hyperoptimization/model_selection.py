@@ -17,7 +17,8 @@ def plot_vars(trials):
 
         records = []
         for p, l in zip(params, losses):
-            records.append({"loss": l, param: p})
+            if l is not 0:
+                records.append({"loss": l, param: p})
 
         df = pd.DataFrame(records)
 
@@ -50,4 +51,4 @@ def analysis(name):
     # trial_curves()
 
 
-# analysis("yolo")
+analysis("nonlinear_Ses02")
