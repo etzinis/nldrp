@@ -41,8 +41,8 @@ PARAM_SPACE = {
     "input_noise": hp.choice('input_noise', [0.2, 0.5, 0.7, 0.9]),
     "input_dropout": hp.choice('input_dropout', [0.3, 0.5, 0.8]),
     "encoder_dropout": hp.choice('encoder_dropout', [0.3, 0.5, 0.8]),
-    "bidirectional": hp.choice('bidirectional', [True, False]),
-    "lr": hp.loguniform('lr', 1e-2, 1e-4),
+    # "bidirectional": hp.choice('bidirectional', [True, False]),
+    # "lr": hp.loguniform('lr', 1e-2, 1e-4),
 }
 
 
