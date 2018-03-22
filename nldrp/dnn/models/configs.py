@@ -6,11 +6,11 @@ Model Configurations
 
 EMOTION_CONFIG = {
     "name": "EMOTION",
-    "batch_train": 32,
-    "batch_eval": 32,
-    "epochs": 100,
-    "input_noise": 0.0,
-    "input_dropout": 0.0,
+    "batch_train": 128,
+    "batch_eval": 128,
+    "epochs": 50,
+    "input_noise": 0.5,
+    "input_dropout": 0.5,
     "encoder_dropout": 0.5,
     "encoder_size": 256,
     "encoder_layers": 2,
