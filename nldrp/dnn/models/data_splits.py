@@ -24,6 +24,16 @@ def generate_speaker_splits(features_dic):
             yield train_speakers, val_speaker, test_speaker
 
 
+def map_labels(labels):
+    _labels = []
+    for label in labels:
+        if label == "excited":
+            _labels.append("happy")
+        else:
+            _labels.append(label)
+    return _labels
+
+
 def get_split(train_speakers, val_speaker, test_speaker, ind_dic, conf):
     X_train = []
     y_train = []
@@ -95,6 +105,10 @@ def get_split(train_speakers, val_speaker, test_speaker, ind_dic, conf):
 
     else:
         raise ValueError("Invalid configuration!")
+
+    y_train = map_labels(y_train)
+    y_val = map_labels(y_val)
+    y_test = map_labels(y_test)
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 

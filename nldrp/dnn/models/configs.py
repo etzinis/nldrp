@@ -1,9 +1,3 @@
-"""
-
-Model Configurations
-
-"""
-
 EMOTION_CONFIG = {
     "name": "EMOTION",
     "batch_train": 128,
