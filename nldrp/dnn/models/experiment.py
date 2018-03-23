@@ -37,7 +37,9 @@ print(args)
 
 config = EMOTION_CONFIG
 
-if args.features == "fused":
+if args.features == "nonlinear":
+    features = "IEMOCAP-rqa-ad_hoc-tau-1-euclidean-recurrence_rate-0.2-dur-0.02-fs-16000-segd-1.0-segstr-0.5.dat"
+elif args.features == "fused":
     features = "IEMOCAP_emobase2010_rqa.dat"
 elif args.features == "linear":
     features = "IEMOCAP_linear_emobase2010_segl_1.0_segol_0.5"
@@ -75,15 +77,16 @@ for i, fold in enumerate(generate_folds(features_dic, args.task), 1):
     print("BEST:", trainer.early_stopping.best)
     print
 
-with open('scores_{}.pickle'.format(args.task), 'wb') as handle:
+name = "scores_{}_{}".format(args.task, args.features)
+
+with open('{}.pickle'.format(name), 'wb') as handle:
     pickle.dump(scores, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-with open("scores_{}.json".format(args.task), 'w') as f:
+with open("{}.json".format(name), 'w') as f:
     json.dump(scores, f)
 
 data = pandas.DataFrame(scores)
-with open("scores_{}.csv".format(args.task), 'w') as f:
+with open("{}.csv".format(name), 'w') as f:
     data.to_csv(f, sep=',', encoding='utf-8')
 
-print(
-    "AVERAGE:{}".format(sum([score["best"] for score in scores]) / len(scores)))
+print("AVERAGE:{}".format(sum([score["best"] for score in scores]) / len(scores)))
