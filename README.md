@@ -1,2 +1,2 @@
 # nldrp
-Non linear dynamics for emotion classification
+Nonlinear Recurrence Quantification Analysis for Speech Emotion Recognition
